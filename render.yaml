@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: ai-decision-support-system-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -e .
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      # Set to production so get_experiment_store() refuses a SQLite
+      # DATABASE_URL and forces you to configure Postgres — see
+      # app/core/experiment_store.py's get_experiment_store() docstring.
+      - key: ENVIRONMENT
+        value: production
+
+      # REQUIRED — set manually in the Render dashboard (Environment
+      # tab), not committed here. Postgres-compatible connection
+      # string, e.g. from Neon/Supabase/Render Postgres:
+      #   postgresql+psycopg://user:pass@host/db
+      - key: DATABASE_URL
+        sync: false
+
+      # REQUIRED — the deployed frontend's actual origin(s), so CORS
+      # (see app/main.py) allows it. Comma-separated for multiple
+      # origins (e.g. production + a specific Vercel preview URL):
+      #   https://ai-decision-support-system.vercel.app
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+
+      # Optional — regex additionally matched against the request
+      # Origin, so every Vercel PREVIEW deployment (each gets a new
+      # hashed subdomain) is allowed without editing
+      # CORS_ALLOWED_ORIGINS on every single deploy. Defaults to this
+      # project's "code-trainer-projects" Vercel team/slug pattern —
+      # see AppSettings.cors_allowed_origin_regex in app/core/config.py.
+      # Only override this if the Vercel project/team is renamed.
+      - key: CORS_ALLOWED_ORIGIN_REGEX
+        sync: false
+
+      # Optional — only needed once the LLM report/chat backend is wired
+      # up. Leave unset to keep running with report_backend=template,
+      # planner_backend=keyword (no LLM calls, no API key needed).
+      - key: OPENROUTER_API_KEY
+        sync: false
