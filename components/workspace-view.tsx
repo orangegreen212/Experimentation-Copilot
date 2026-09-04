@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   UploadCloud,
   FileSpreadsheet,
@@ -27,8 +27,10 @@ import {
   refreshClassification,
   analyzeExperimentStream,
   streamChatResponse,
+  listRealDatasets,
   ApiError,
 } from '@/lib/api';
+import type { RealDatasetOption } from '@/lib/api';
 import type {
   DatasetInfo,
   ExecutionStep,
@@ -86,6 +88,11 @@ export function WorkspaceView({ onSessionSaved, settings, onSettingsChange }: Wo
   const [primaryOnlyDataset, setPrimaryOnlyDataset] = useState<DatasetInfo | null>(null);
   const [datasetId, setDatasetId] = useState<string | null>(null);
   const [isDemo, setIsDemo] = useState(false);
+  // Real, published experiment datasets fetched from GET /datasets/real —
+  // populated once on mount so the picker (rendered next to the demo
+  // button) doesn't have to guess dataset_key values that only the
+  // backend knows about.
+  const [realDatasets, setRealDatasets] = useState<RealDatasetOption[]>([]);
   const [fileName, setFileName] = useState<string | null>(null);
   const [prompt, setPrompt] = useState('');
   const [phase, setPhase] = useState<Phase>('idle');
@@ -109,6 +116,15 @@ export function WorkspaceView({ onSessionSaved, settings, onSettingsChange }: Wo
   const [assignmentError, setAssignmentError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const assignmentFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch the list of available real/published experiment datasets once,
+  // on mount. Failure here just means the picker stays empty (upload and
+  // demo remain fully usable) — not worth surfacing as a page-level error.
+  useEffect(() => {
+    listRealDatasets()
+      .then(setRealDatasets)
+      .catch(() => setRealDatasets([]));
+  }, []);
 
   const resetForNewDataset = () => {
     setReport(null);
@@ -150,6 +166,29 @@ export function WorkspaceView({ onSessionSaved, settings, onSettingsChange }: Wo
       resetForNewDataset();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to load the demo dataset.');
+    } finally {
+      setIsClassifying(false);
+    }
+  };
+
+  // Real, published experiment dataset — a third source alongside "Upload
+  // CSV" and "Load Demo". Goes through the exact same classifyDataset()
+  // call/endpoint as those two, just with `datasetKey` instead of `file`
+  // or `useDemo`, so every downstream step (banner, hypothesis form,
+  // analysis) is unaffected by which source produced the dataset.
+  const loadRealDataset = async (key: string) => {
+    setIsClassifying(true);
+    setError(null);
+    try {
+      const result = await classifyDataset({ datasetKey: key });
+      setIsDemo(false);
+      setDataset(result.dataset);
+      setPrimaryOnlyDataset(result.dataset);
+      setDatasetId(result.datasetId);
+      setFileName(result.fileName);
+      resetForNewDataset();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to load the real dataset.');
     } finally {
       setIsClassifying(false);
     }
@@ -437,6 +476,27 @@ export function WorkspaceView({ onSessionSaved, settings, onSettingsChange }: Wo
             )}
             Load Demo A/B Dataset
           </Button>
+          {/* Real, published experiment datasets — a third source
+              alongside upload and the synthetic demo. One button per
+              dataset since the list is short (currently one); switch to
+              a dropdown if this grows past a handful. */}
+          {realDatasets.map((ds) => (
+            <Button
+              key={ds.key}
+              size="sm"
+              variant="outline"
+              className="border-black/15"
+              onClick={() => loadRealDataset(ds.key)}
+              disabled={isClassifying}
+            >
+              {isClassifying ? (
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="mr-1.5 h-4 w-4" />
+              )}
+              {ds.label}
+            </Button>
+          ))}
         </div>
       </div>
 
