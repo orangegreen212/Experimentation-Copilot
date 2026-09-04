@@ -65,6 +65,37 @@ _DEMO_PATHS = {
     True: (_DEMO_DIR / "demo_ab_checkout_lowq.csv", "demo_ab_checkout_lowq.csv"),
 }
 
+# Real, published experiment datasets — an alternative to "Upload CSV" for
+# analysts who want to run the Copilot against a genuine randomized
+# experiment instead of a synthetic/demo one. Same DataFrame -> classify ->
+# store pipeline as everything else; only the source of the DataFrame
+# differs. Keyed by a short slug the frontend passes as `dataset_key`.
+_REAL_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "real"
+_REAL_DATASETS: dict[str, tuple[Path, str]] = {
+    "hillstrom_email": (
+        _REAL_DIR / "real_email_campaign.csv",
+        "Hillstrom E-Mail Campaign (real A/B/n experiment, 64K customers)",
+    ),
+    "landing_page_ab": (
+        _REAL_DIR / "real_landing_page_ab.csv",
+        "Landing Page Redesign (real A/B test, 294K users)",
+    ),
+    "ecommerce_category": (
+        _REAL_DIR / "real_ecommerce_category.csv",
+        "E-Commerce Category Experiment (real A/B test, 48K users)",
+    ),
+}
+
+
+@router.get("/real")
+def list_real_datasets() -> list[dict]:
+    """List real, published experiment datasets available as a data source
+    alongside file upload and the synthetic demo (see _REAL_DATASETS)."""
+    return [
+        {"key": key, "label": label}
+        for key, (_path, label) in _REAL_DATASETS.items()
+    ]
+
 
 @router.post(
     "/classify",
@@ -75,6 +106,7 @@ def classify_dataset_route(
     file: UploadFile | None = File(default=None),
     use_demo: bool = Form(default=False),
     simulate_low_quality: bool = Form(default=False),
+    dataset_key: str | None = Form(default=None),
 ) -> ClassifyDatasetResponse:
     """
     Classify an uploaded CSV or load one of the two demo datasets.
@@ -131,8 +163,24 @@ def classify_dataset_route(
         # crashes /datasets/classify outright with an UnboundLocalError.
         raw_bytes = None
         is_excel = False
+    elif dataset_key:
+        if dataset_key not in _REAL_DATASETS:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Unknown dataset_key {dataset_key!r}. Available: {sorted(_REAL_DATASETS)}",
+            )
+        path, file_name = _REAL_DATASETS[dataset_key]
+        df = pd.read_csv(path)
+        # Same reasoning as the use_demo branch above: loaded from a local
+        # bundled file, not an upload, so there's no raw byte stream and
+        # it's never Excel.
+        raw_bytes = None
+        is_excel = False
     else:
-        raise HTTPException(status_code=400, detail="Provide either a file or use_demo=True.")
+        raise HTTPException(
+            status_code=400,
+            detail="Provide a file, use_demo=True, or a dataset_key.",
+        )
 
     try:
         dataset_info = classify_dataset(df)
