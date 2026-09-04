@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 9%;
+    --primary: 243 75% 59%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 20% 97%;
+    --secondary-foreground: 240 10% 15%;
+    --muted: 240 20% 96%;
+    --muted-foreground: 240 6% 46%;
+    --accent: 243 75% 96%;
+    --accent-foreground: 243 75% 40%;
+    --destructive: 0 72% 42%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 152 55% 40%;
+    --success-foreground: 0 0% 100%;
+    --warning: 32 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --border: 240 14% 90%;
+    --input: 240 14% 90%;
+    --ring: 243 75% 59%;
+    --chart-1: 243 75% 59%;
+    --chart-2: 152 55% 40%;
+    --chart-3: 0 72% 42%;
+    --chart-4: 240 10% 50%;
+    --chart-5: 240 10% 70%;
+    --radius: 0.9rem;
+  }
+  .dark {
+    --background: 0 0% 7%;
+    --foreground: 0 0% 96%;
+    --card: 0 0% 9%;
+    --card-foreground: 0 0% 96%;
+    --popover: 0 0% 9%;
+    --popover-foreground: 0 0% 96%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 14%;
+    --secondary-foreground: 0 0% 96%;
+    --muted: 0 0% 14%;
+    --muted-foreground: 0 0% 64%;
+    --accent: 0 0% 16%;
+    --accent-foreground: 0 0% 96%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 142 64% 42%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 0 0% 98%;
+    --chart-1: 0 0% 96%;
+    --chart-2: 142 64% 42%;
+    --chart-3: 0 62% 45%;
+    --chart-4: 0 0% 64%;
+    --chart-5: 0 0% 80%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    letter-spacing: -0.011em;
+    /* Bigger baseline: most of the UI's copy is tighter than
+       comfortable for extended reading (report text, history rows,
+       form labels). Bumping the root size scales every rem-based
+       Tailwind class (text-xs/sm/base/lg/...) app-wide. */
+    font-size: 16px;
+    line-height: 1.55;
+  }
+}
+
+/* Readability pass: a large share of the UI uses fixed-px arbitrary
+   Tailwind classes (text-[10px] .. text-[15px]) instead of the
+   rem-based scale above, so they don't benefit from the root
+   font-size bump. Raise each fixed size by ~2px app-wide here
+   instead of hand-editing every component. */
+@layer utilities {
+  .text-\[9px\] { font-size: 11px !important; }
+  .text-\[10px\] { font-size: 12px !important; }
+  .text-\[11px\] { font-size: 13px !important; }
+  .text-\[12px\] { font-size: 14px !important; }
+  .text-\[13px\] { font-size: 15px !important; }
+  .text-\[15px\] { font-size: 17px !important; }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .animate-fade-in {
+    animation: fade-in 0.35s ease-out both;
+  }
+  .animate-slide-up {
+    animation: slide-up 0.35s ease-out both;
+  }
+  .animate-pulse-soft {
+    animation: pulse-soft 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
