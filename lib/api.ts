@@ -73,17 +73,24 @@ interface ClassifyDatasetParams {
   file?: File;
   useDemo?: boolean;
   simulateLowQuality?: boolean;
+  // Loads a real, published experiment dataset bundled on the backend
+  // (see GET /datasets/real for the available keys) — a third source
+  // alongside file upload and the synthetic demo. Mutually exclusive
+  // with `file` and `useDemo`, same as those are with each other.
+  datasetKey?: string;
 }
 
 export async function classifyDataset({
   file,
   useDemo,
   simulateLowQuality,
+  datasetKey,
 }: ClassifyDatasetParams): Promise<ClassifyDatasetResult> {
   const formData = new FormData();
   if (file) formData.append('file', file);
   if (useDemo) formData.append('use_demo', 'true');
   if (simulateLowQuality) formData.append('simulate_low_quality', 'true');
+  if (datasetKey) formData.append('dataset_key', datasetKey);
 
   const response = await fetch(`${API_URL}/datasets/classify`, {
     method: 'POST',
@@ -94,6 +101,23 @@ export async function classifyDataset({
     throw new ApiError(await parseErrorDetail(response), response.status);
   }
 
+  return response.json();
+}
+
+// ---------------------------------------------------------------------------
+// GET /datasets/real — list available real/published experiment datasets
+// ---------------------------------------------------------------------------
+
+export interface RealDatasetOption {
+  key: string;
+  label: string;
+}
+
+export async function listRealDatasets(): Promise<RealDatasetOption[]> {
+  const response = await fetch(`${API_URL}/datasets/real`);
+  if (!response.ok) {
+    throw new ApiError(await parseErrorDetail(response), response.status);
+  }
   return response.json();
 }
 
