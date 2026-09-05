@@ -34,6 +34,7 @@ from enum import Enum
 from pydantic import Field, field_validator, model_validator
 
 from app.schemas.base import CamelModel
+from app.schemas.statistics import MetricType
 
 # Reasonable maximum length for a free-text hypothesis statement —
 # long enough for a real, specific hypothesis sentence or two, short
@@ -189,3 +190,93 @@ class Hypothesis(CamelModel):
                     "magnitude to compare against)."
                 )
         return self
+
+
+# ---------------------------------------------------------------------------
+# Sample size planning — pre-experiment "Create Experiment" screen.
+#
+# Deliberately separate from the Hypothesis class above: a Hypothesis is
+# captured and stored alongside a dataset (post-hoc evaluation context).
+# A sample-size PLAN happens before any dataset exists — it is never
+# persisted against an experiment run, only computed on demand by
+# POST /experiments/plan-sample-size and shown to the analyst.
+# ---------------------------------------------------------------------------
+
+
+class SampleSizePlanRequest(CamelModel):
+    """
+    What the analyst can reasonably guess BEFORE running anything: an
+    assumed baseline for the primary metric, and the smallest relative
+    change worth being able to detect. See
+    `app/stats/power_analysis.py::plan_required_sample_size` for the
+    actual calculation this feeds.
+    """
+
+    metric_type: MetricType = Field(
+        description="BINARY for a conversion-style metric (e.g. checkout rate); "
+        "CONTINUOUS for a metric like order value or session duration."
+    )
+    baseline_rate: float = Field(
+        gt=0,
+        description="Assumed current value of the primary metric under control — "
+        "a proportion between 0 and 1 for BINARY (e.g. 0.12 for a 12% conversion "
+        "rate), or the assumed mean for CONTINUOUS (e.g. 45.0 for average order value).",
+    )
+    baseline_std: float | None = Field(
+        default=None,
+        gt=0,
+        description="Required for CONTINUOUS metrics only — the assumed standard "
+        "deviation of the metric. Ignored for BINARY metrics, whose variance is "
+        "fully determined by baseline_rate.",
+    )
+    mde_relative_pct: float = Field(
+        gt=0,
+        description="Smallest RELATIVE change (in percent) worth being able to "
+        "detect, e.g. 5.0 for 'a 5% relative lift'.",
+    )
+    num_variants: int = Field(
+        default=2, ge=2, le=10,
+        description="Total number of arms including control (2 for classic A/B, "
+        "3+ for A/B/n) — required sample size is computed per arm, then "
+        "multiplied by this to get the total.",
+    )
+    daily_traffic_per_arm: int | None = Field(
+        default=None, gt=0,
+        description="Optional — expected number of eligible users per arm per "
+        "day. If provided, the response includes an estimated number of days "
+        "to reach the required sample size.",
+    )
+
+    @model_validator(mode="after")
+    def _baseline_rate_valid_for_binary(self) -> "SampleSizePlanRequest":
+        if self.metric_type == MetricType.BINARY and not (0 < self.baseline_rate < 1):
+            raise ValueError("baseline_rate must be between 0 and 1 (exclusive) for a BINARY metric.")
+        return self
+
+    @model_validator(mode="after")
+    def _baseline_std_required_for_continuous(self) -> "SampleSizePlanRequest":
+        if self.metric_type != MetricType.BINARY and not self.baseline_std:
+            raise ValueError("baseline_std is required when metric_type is not BINARY.")
+        return self
+
+
+class SampleSizePlan(CamelModel):
+    """Pure calculation result from plan_required_sample_size — no
+    formatting, no display strings (unlike PowerAnalysisResult's
+    siblings in statistics.py), since the frontend needs the raw
+    numbers to build its own summary sentence."""
+
+    required_n_per_arm: int
+    required_n_total: int
+    alpha: float
+    target_power: float
+    effect_size: float
+
+
+class SampleSizePlanResponse(CamelModel):
+    plan: SampleSizePlan
+    estimated_days: float | None = Field(
+        default=None,
+        description="required_n_per_arm / daily_traffic_per_arm, rounded up — "
+        "omitted if daily_traffic_per_arm wasn't provided in the request.",
+    )
