@@ -10,6 +10,8 @@ import {
   Wand2,
   Loader2,
   XCircle,
+  Database,
+  ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -17,10 +19,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ExecutionStepper } from '@/components/execution-stepper';
 import { ReportCard } from '@/components/report-card';
 import { FollowUpChat } from '@/components/follow-up-chat';
 import { HypothesisForm } from '@/components/hypothesis-form';
+import { ExperimentSetup } from '@/components/experiment-setup';
 import { DatasetClassificationCard } from '@/components/dataset-classification-card';
 import {
   classifyDataset,
@@ -36,6 +40,7 @@ import type {
   ExecutionStep,
   ExecutionStepStatus,
   ExperimentReport,
+  ExperimentPlan,
   StepStatus,
   ChatMessage,
   Hypothesis,
@@ -105,6 +110,17 @@ export function WorkspaceView({ onSessionSaved, settings, onSettingsChange }: Wo
   const [isClassifying, setIsClassifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hypothesis, setHypothesis] = useState<Hypothesis | null>(null);
+  // The plan captured on the pre-experiment "Create Experiment" screen
+  // (see ExperimentSetup) — kept around so it can pre-fill the
+  // hypothesis/guardrails once a dataset is subsequently loaded. Never
+  // sent to the backend directly; only its fields feed into Hypothesis /
+  // settings.guardrailMetrics below.
+  const [experimentPlan, setExperimentPlan] = useState<ExperimentPlan | null>(null);
+  // Whether the pre-experiment planning card is collapsed (either
+  // because the analyst finished it via onContinue, or explicitly
+  // skipped it). Separate from experimentPlan being null/non-null so
+  // "skip without planning" and "plan captured" are distinguishable.
+  const [showSetupSkipped, setShowSetupSkipped] = useState(false);
   // Optional separate experiment-assignment dataset (user_id | variant),
   // uploaded through the SAME classifyDataset() call as the primary
   // dataset — see handleAssignmentFile below. Undefined/null for every
@@ -153,6 +169,37 @@ export function WorkspaceView({ onSessionSaved, settings, onSettingsChange }: Wo
     onSettingsChange?.({ ...settings, guardrailMetrics: [] });
   };
 
+  // Pre-fills the hypothesis/guardrails from a plan captured on the
+  // "Create Experiment" screen (if any) once a dataset has just been
+  // classified. Guardrail names are matched loosely (case-insensitive
+  // substring) against this SPECIFIC dataset's own guardrailCandidates —
+  // never applied blindly — since a plan written before any dataset was
+  // selected can't know what that dataset will actually call things;
+  // see resetForNewDataset's comment above for why a mismatch here would
+  // be a silent-misattribution risk.
+  const applyExperimentPlan = (loadedDataset: DatasetInfo) => {
+    if (!experimentPlan) return;
+    setHypothesis({
+      statement: experimentPlan.statement,
+      primaryMetric: experimentPlan.primaryMetric || loadedDataset.metricLabel,
+      expectedDirection: experimentPlan.expectedDirection,
+      expectedEffectRelative:
+        experimentPlan.sampleSizeRequest?.mdeRelativePct != null
+          ? experimentPlan.sampleSizeRequest.mdeRelativePct / 100
+          : null,
+      rationale: null,
+    });
+    const candidates = loadedDataset.guardrailCandidates ?? [];
+    const matched = experimentPlan.guardrailMetricNames
+      .map((planned) =>
+        candidates.find((c) => c.toLowerCase().includes(planned.toLowerCase()))
+      )
+      .filter((c): c is string => Boolean(c));
+    if (matched.length > 0) {
+      onSettingsChange?.({ ...settings, guardrailMetrics: matched });
+    }
+  };
+
   const loadDemo = async () => {
     setIsClassifying(true);
     setError(null);
@@ -164,6 +211,7 @@ export function WorkspaceView({ onSessionSaved, settings, onSettingsChange }: Wo
       setDatasetId(result.datasetId);
       setFileName(result.fileName);
       resetForNewDataset();
+      applyExperimentPlan(result.dataset);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to load the demo dataset.');
     } finally {
@@ -187,6 +235,7 @@ export function WorkspaceView({ onSessionSaved, settings, onSettingsChange }: Wo
       setDatasetId(result.datasetId);
       setFileName(result.fileName);
       resetForNewDataset();
+      applyExperimentPlan(result.dataset);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to load the real dataset.');
     } finally {
@@ -205,6 +254,7 @@ export function WorkspaceView({ onSessionSaved, settings, onSettingsChange }: Wo
       setDatasetId(result.datasetId);
       setFileName(result.fileName);
       resetForNewDataset();
+      applyExperimentPlan(result.dataset);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not parse this file.');
     } finally {
@@ -432,6 +482,44 @@ export function WorkspaceView({ onSessionSaved, settings, onSettingsChange }: Wo
         below breaks out to full width once it's ready, to match the
         reference dashboard layout — see the closing wrapper below. */}
     <div className="mx-auto max-w-3xl space-y-4">
+      {/* Pre-experiment planning — only shown before any dataset is
+          loaded; once `dataset` is set, the analyst has moved past
+          planning into review, and hypothesis/guardrails are edited via
+          HypothesisForm below instead (scoped to that specific
+          dataset's real metric names). */}
+      {!dataset && !showSetupSkipped && (
+        <ExperimentSetup
+          onContinue={(plan) => {
+            setExperimentPlan(plan);
+            setShowSetupSkipped(true);
+          }}
+          onSkip={() => setShowSetupSkipped(true)}
+        />
+      )}
+      {!dataset && showSetupSkipped && experimentPlan && (
+        <div className="flex items-center justify-between rounded-lg border border-black/10 bg-neutral-50 px-4 py-2.5 text-[13px] text-black">
+          <span>
+            Experiment plan captured — it will pre-fill the hypothesis once you pick a dataset below.
+          </span>
+          <button
+            type="button"
+            className="text-neutral-400 underline hover:text-black"
+            onClick={() => setShowSetupSkipped(false)}
+          >
+            Edit
+          </button>
+        </div>
+      )}
+      {!dataset && !experimentPlan && showSetupSkipped && (
+        <button
+          type="button"
+          className="text-left text-xs text-neutral-400 underline hover:text-black"
+          onClick={() => setShowSetupSkipped(false)}
+        >
+          Plan this experiment first
+        </button>
+      )}
+
       {/* Upload Zone */}
       <div
         className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-black/15 bg-white py-12 text-center"
@@ -476,29 +564,52 @@ export function WorkspaceView({ onSessionSaved, settings, onSettingsChange }: Wo
             )}
             Load Demo A/B Dataset
           </Button>
-          {/* Real, published experiment datasets — a third source
-              alongside upload and the synthetic demo. One button per
-              dataset since the list is short (currently one); switch to
-              a dropdown if this grows past a handful. */}
-          {realDatasets.map((ds) => (
-            <Button
-              key={ds.key}
-              size="sm"
-              variant="outline"
-              className="border-black/15"
-              onClick={() => loadRealDataset(ds.key)}
-              disabled={isClassifying}
-            >
-              {isClassifying ? (
-                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-              ) : (
-                <FileSpreadsheet className="mr-1.5 h-4 w-4" />
-              )}
-              {ds.label}
-            </Button>
-          ))}
         </div>
       </div>
+
+      {/* Real, published experiment datasets — collapsed by default so
+          the primary upload/demo actions above stay visually dominant.
+          Renders nothing if the backend has none registered or the
+          fetch failed (see the useEffect above). */}
+      {realDatasets.length > 0 && (
+        <Collapsible className="rounded-lg border border-black/10 bg-white">
+          <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 text-left">
+            <div className="flex items-center gap-2">
+              <Database className="h-4 w-4 text-neutral-500" />
+              <span className="text-[13px] font-medium text-black">
+                Real Experiment Datasets
+              </span>
+              <Badge variant="outline" className="text-[10px]">
+                {realDatasets.length}
+              </Badge>
+            </div>
+            <ChevronDown className="h-4 w-4 text-neutral-400 transition-transform data-[state=open]:rotate-180" />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="border-t border-black/10 px-4 py-3">
+            <p className="mb-3 text-xs text-neutral-400">
+              Run the Copilot against a genuine published randomized experiment
+              instead of a synthetic demo.
+            </p>
+            <div className="flex flex-col gap-2">
+              {realDatasets.map((ds) => (
+                <button
+                  key={ds.key}
+                  onClick={() => loadRealDataset(ds.key)}
+                  disabled={isClassifying}
+                  className="flex items-center gap-2.5 rounded-md border border-black/10 px-3 py-2 text-left text-[13px] text-black transition-colors hover:bg-neutral-50 disabled:opacity-50"
+                >
+                  {isClassifying ? (
+                    <Loader2 className="h-4 w-4 shrink-0 animate-spin text-neutral-400" />
+                  ) : (
+                    <FileSpreadsheet className="h-4 w-4 shrink-0 text-neutral-500" />
+                  )}
+                  {ds.label}
+                </button>
+              ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
 
       {/* Error banner */}
       {error && (
