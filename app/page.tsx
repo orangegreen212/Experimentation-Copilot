@@ -72,6 +72,7 @@ export default function Home() {
           {view === 'library' && (
             <ExperimentLibrary
               refreshKey={historyVersion}
+              settings={settings}
               onContinueToAnalysis={() => setView('overview')}
             />
           )}

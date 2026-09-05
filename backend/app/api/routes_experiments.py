@@ -114,7 +114,10 @@ def _store() -> ExperimentStore:
 
 
 async def _execute_analysis(
-    request: "AnalyzeExperimentRequest", run_context: RunContext
+    request: "AnalyzeExperimentRequest",
+    run_context: RunContext,
+    *,
+    definition_id: str | None = None,
 ) -> AnalyzeExperimentResponse:
     """
     Shared body for the synchronous `/analyze` endpoint and the
@@ -133,6 +136,19 @@ async def _execute_analysis(
     app/core/pipeline_events.py. The non-streaming endpoint passes a
     RunContext with `emit=None`, so timings are still collected (and
     returned in `stage_timings`) even without streaming.
+
+    `definition_id` (Phase 8 — Experiment Platform layer) is None for
+    every call from the two routes below (the existing, definition-less
+    analysis flow is completely unaffected). It is set only when this
+    is invoked from
+    `routes_experiment_definitions.analyze_experiment_definition`,
+    which composes an `AnalyzeExperimentRequest` from a saved
+    `ExperimentDefinition`'s `data_source` + primary hypothesis and
+    calls straight into this SAME function — deliberately not a
+    parallel/duplicated analysis path (see that route's docstring).
+    Threading it through here is what lets the resulting persisted run
+    link back to its definition (`ExperimentStore.list_by_definition`,
+    Phase 10 — History).
     """
     if not dataset_exists(request.dataset_id):
         raise HTTPException(status_code=404, detail=f"Unknown dataset_id: {request.dataset_id}")
@@ -238,6 +254,7 @@ async def _execute_analysis(
         user_prompt=request.prompt,
         report=report,
         execution_steps=execution_steps,
+        definition_id=definition_id,
     )
 
     related = _store().list_related(

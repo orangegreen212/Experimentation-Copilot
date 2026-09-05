@@ -162,6 +162,18 @@ class ExperimentStore(ABC):
         """
 
     @abstractmethod
+    def list_by_definition(self, definition_id: str) -> list[ExperimentRecord]:
+        """
+        Phase 10 — every AnalysisRun launched from one `ExperimentDefinition`
+        (app/core/experiment_definition_store.py), most recent first. This is
+        what lets one definition accumulate several runs over its lifetime
+        (e.g. "Analysis #1 — initial", "#2 — extended data", "#3 — final") —
+        see routes_experiment_definitions.py's `GET /{definition_id}/runs`.
+        Plain filter on the indexed `definition_id` column, same pattern as
+        `list_related` above; never semantic/LLM memory.
+        """
+
+    @abstractmethod
     def delete(self, experiment_id: str) -> bool:
         """Deletes an experiment (and its chat history). Returns False if unknown."""
 
@@ -353,6 +365,15 @@ class SQLExperimentStore(ExperimentStore):
             if exclude_experiment_id is not None:
                 stmt = stmt.filter(ExperimentModel.experiment_id != exclude_experiment_id)
             rows = session.scalars(stmt).all()
+            return [_row_to_record(r) for r in rows]
+
+    def list_by_definition(self, definition_id: str) -> list[ExperimentRecord]:
+        with self._Session() as session:
+            rows = session.scalars(
+                select(ExperimentModel)
+                .filter(ExperimentModel.definition_id == definition_id)
+                .order_by(ExperimentModel.created_at.desc())
+            ).all()
             return [_row_to_record(r) for r in rows]
 
     def delete(self, experiment_id: str) -> bool:

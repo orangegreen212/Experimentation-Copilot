@@ -42,11 +42,29 @@ import { ExperimentDesignForm } from '@/components/experiment-design-form';
 import { ExperimentVariantsForm } from '@/components/experiment-variants-form';
 import { ExperimentTargetingForm } from '@/components/experiment-targeting-form';
 import { ExperimentAssignmentForm } from '@/components/experiment-assignment-form';
+import { ExperimentMetricsForm } from '@/components/experiment-metrics-form';
+import { ExperimentDataSourceForm } from '@/components/experiment-data-source-form';
+import { ExperimentDefinitionRuns } from '@/components/experiment-definition-runs';
 import type {
   ExperimentDefinition,
   ExperimentDefinitionSummary,
   ExperimentStatus,
+  Settings,
 } from '@/lib/types';
+
+interface ExperimentLibraryProps {
+  /** Bump to force a refetch (e.g. after an analysis run elsewhere saves something related). */
+  refreshKey?: number;
+  /** Same run-level toggles (CUPED/bootstrap/model) as the Overview
+   *  tab's Experiment Configuration panel — passed through to
+   *  ExperimentDefinitionRuns (Phase 8/9) so "Run analysis" here uses
+   *  the same settings, not a second/divergent control. */
+  settings: Settings;
+  /** Called when the analyst chooses to continue a definition into the
+   *  existing analysis workflow (Overview tab) instead of running it
+   *  inline via the Analysis Runs section below. */
+  onContinueToAnalysis?: (definitionId: string) => void;
+}
 
 const STATUS_LABELS: Record<ExperimentStatus, string> = {
   draft: 'Draft',
@@ -81,15 +99,7 @@ const ALL_STATUSES: ExperimentStatus[] = [
   'archived',
 ];
 
-interface ExperimentLibraryProps {
-  /** Bump to force a refetch (e.g. after an analysis run elsewhere saves something related). */
-  refreshKey?: number;
-  /** Called when the analyst chooses to continue a definition into the
-   *  existing analysis workflow (Overview tab). Phase 2 only navigates
-   *  there — actually pre-filling the dataset/hypothesis from the
-   *  definition is Phase 6 ("wire Data Source -> existing engine"). */
-  onContinueToAnalysis?: (definitionId: string) => void;
-}
+
 
 interface NewDefinitionFormState {
   name: string;
@@ -100,7 +110,7 @@ interface NewDefinitionFormState {
 
 const EMPTY_FORM: NewDefinitionFormState = { name: '', productArea: '', owner: '', team: '' };
 
-export function ExperimentLibrary({ refreshKey, onContinueToAnalysis }: ExperimentLibraryProps) {
+export function ExperimentLibrary({ refreshKey, settings, onContinueToAnalysis }: ExperimentLibraryProps) {
   const [items, setItems] = useState<ExperimentDefinitionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -383,8 +393,7 @@ export function ExperimentLibrary({ refreshKey, onContinueToAnalysis }: Experime
             </Card>
 
             {/* Phase 3 — Experiment Design: problem/objective/hypotheses,
-                editable inline and saved via PATCH. Variants/Targeting/
-                Metrics/Data Source get their own sections in later phases. */}
+                editable inline and saved via PATCH. */}
             <ExperimentDesignForm
               definition={detail}
               onSaved={(updated) => {
@@ -412,11 +421,31 @@ export function ExperimentLibrary({ refreshKey, onContinueToAnalysis }: Experime
               onSaved={(updated) => setDetail(updated)}
             />
 
+            {/* Phase 7 — Metrics: Primary/Secondary/Guardrail. */}
+            <ExperimentMetricsForm
+              definition={detail}
+              onSaved={(updated) => setDetail(updated)}
+            />
+
+            {/* Phase 8 — Data Source: connects this definition to one of
+                the existing datasets (or a fresh upload), via the same
+                classify pipeline as the Overview tab. */}
+            <ExperimentDataSourceForm
+              definition={detail}
+              onSaved={(updated) => setDetail(updated)}
+            />
+
+            {/* Phase 9/10 — Visualization + History: run this definition
+                through the EXISTING analysis engine and browse its past
+                AnalysisRuns, each rendered with the same <ReportCard />
+                used everywhere else. */}
+            <ExperimentDefinitionRuns definition={detail} settings={settings} />
+
             <Card className="border-dashed border-black/15 bg-neutral-50/60 shadow-none">
               <CardContent className="flex items-center justify-between gap-4 py-4">
                 <div className="flex items-center gap-2 text-sm text-neutral-500">
                   <Beaker className="h-4 w-4 text-neutral-400" />
-                  Ready to run this against a dataset? Continue in the existing analysis workflow.
+                  Prefer the full Overview workflow (prompt, live progress, follow-up chat)?
                 </div>
                 <Button
                   size="sm"

@@ -686,3 +686,66 @@ export async function deleteExperimentDefinition(definitionId: string): Promise<
     throw new ApiError(await parseErrorDetail(response), response.status);
   }
 }
+
+// ---------------------------------------------------------------------------
+// POST /experiment-definitions/{id}/analyze — Phase 8. Maps the
+// definition's data_source + primary hypothesis onto the SAME
+// AnalyzeExperimentRequest the Overview tab's analyzeExperiment() above
+// sends — no separate/duplicated analysis path on the frontend either.
+// Returns the identical AnalyzeExperimentResult shape, so the caller can
+// feed it straight into <ReportCard /> (Phase 9) exactly like the
+// existing analysis flow does.
+// ---------------------------------------------------------------------------
+
+interface AnalyzeExperimentDefinitionParams {
+  definitionId: string;
+  settings: Settings;
+  /** Optional override — falls back to the definition's objective/problem
+   *  statement server-side when omitted (see AnalyzeDefinitionRequest). */
+  prompt?: string;
+}
+
+export async function analyzeExperimentDefinition({
+  definitionId,
+  settings,
+  prompt,
+}: AnalyzeExperimentDefinitionParams): Promise<AnalyzeExperimentResult> {
+  const response = await fetch(`${API_URL}/experiment-definitions/${definitionId}/analyze`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      settings: {
+        cuped: settings.cuped,
+        bootstrap: settings.bootstrap,
+        ...(settings.model ? { model: settings.model } : {}),
+        ...(settings.guardrailMetrics && settings.guardrailMetrics.length > 0
+          ? { guardrailMetrics: settings.guardrailMetrics }
+          : {}),
+      },
+      ...(prompt ? { prompt } : {}),
+    }),
+  });
+
+  if (!response.ok) {
+    throw new ApiError(await parseErrorDetail(response), response.status);
+  }
+
+  return response.json();
+}
+
+// ---------------------------------------------------------------------------
+// GET /experiment-definitions/{id}/runs — Phase 10 (History). Every
+// AnalysisRun launched from this definition, most recent first. Same
+// lightweight ExperimentSummary shape as GET /experiments (History list)
+// — a specific run's full report is fetched on demand via getExperiment().
+// ---------------------------------------------------------------------------
+
+export async function listExperimentDefinitionRuns(
+  definitionId: string
+): Promise<ExperimentSummary[]> {
+  const response = await fetch(`${API_URL}/experiment-definitions/${definitionId}/runs`);
+  if (!response.ok) {
+    throw new ApiError(await parseErrorDetail(response), response.status);
+  }
+  return response.json();
+}
