@@ -38,6 +38,7 @@ import {
   updateExperimentDefinition,
   ApiError,
 } from '@/lib/api';
+import { ExperimentDesignForm } from '@/components/experiment-design-form';
 import type {
   ExperimentDefinition,
   ExperimentDefinitionSummary,
@@ -357,29 +358,8 @@ export function ExperimentLibrary({ refreshKey, onContinueToAnalysis }: Experime
             </div>
 
             <Card className="border-black/10 shadow-none">
-              <CardContent className="space-y-4 py-5">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div>
-                    <p className="text-[11px] font-medium uppercase tracking-wide text-neutral-400">
-                      Problem statement
-                    </p>
-                    <p className="mt-1 text-sm text-neutral-700">
-                      {detail.problemStatement || (
-                        <span className="text-neutral-300">Not set yet — Experiment Design lands next.</span>
-                      )}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-medium uppercase tracking-wide text-neutral-400">
-                      Objective
-                    </p>
-                    <p className="mt-1 text-sm text-neutral-700">
-                      {detail.objective || <span className="text-neutral-300">Not set yet.</span>}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-4 border-t border-black/5 pt-4 text-xs text-neutral-400">
+              <CardContent className="py-4">
+                <div className="flex flex-wrap items-center gap-4 text-xs text-neutral-400">
                   <span>
                     Hypotheses: <span className="font-medium text-neutral-600">{detail.hypotheses.length}</span>
                   </span>
@@ -398,6 +378,17 @@ export function ExperimentLibrary({ refreshKey, onContinueToAnalysis }: Experime
                 </div>
               </CardContent>
             </Card>
+
+            {/* Phase 3 — Experiment Design: problem/objective/hypotheses,
+                editable inline and saved via PATCH. Variants/Targeting/
+                Metrics/Data Source get their own sections in later phases. */}
+            <ExperimentDesignForm
+              definition={detail}
+              onSaved={(updated) => {
+                setDetail(updated);
+                setItems((prev) => prev.map((d) => (d.id === updated.id ? { ...d, name: updated.name } : d)));
+              }}
+            />
 
             <Card className="border-dashed border-black/15 bg-neutral-50/60 shadow-none">
               <CardContent className="flex items-center justify-between gap-4 py-4">
