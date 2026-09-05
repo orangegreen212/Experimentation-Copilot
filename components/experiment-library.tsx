@@ -39,6 +39,7 @@ import {
   ApiError,
 } from '@/lib/api';
 import { ExperimentDesignForm } from '@/components/experiment-design-form';
+import { ExperimentVariantsForm } from '@/components/experiment-variants-form';
 import type {
   ExperimentDefinition,
   ExperimentDefinitionSummary,
@@ -388,6 +389,12 @@ export function ExperimentLibrary({ refreshKey, onContinueToAnalysis }: Experime
                 setDetail(updated);
                 setItems((prev) => prev.map((d) => (d.id === updated.id ? { ...d, name: updated.name } : d)));
               }}
+            />
+
+            {/* Phase 4 — Variants: Control + Treatment arms with allocation. */}
+            <ExperimentVariantsForm
+              definition={detail}
+              onSaved={(updated) => setDetail(updated)}
             />
 
             <Card className="border-dashed border-black/15 bg-neutral-50/60 shadow-none">
