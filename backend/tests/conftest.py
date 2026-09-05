@@ -58,6 +58,7 @@ import pytest
 
 import app.core.dataset_store as dataset_store_module
 import app.core.experiment_store as experiment_store_module
+import app.core.experiment_definition_store as experiment_definition_store_module
 import app.core.rate_limit as rate_limit_module
 from app.core.config import app_settings
 
@@ -90,6 +91,7 @@ def isolated_test_database(tmp_path, monkeypatch):
     # exact reset each module already performs internally on first use
     # — see `get_experiment_store()` and `_get_session_factory()`.
     monkeypatch.setattr(experiment_store_module, "_store", None)
+    monkeypatch.setattr(experiment_definition_store_module, "_store", None)
     monkeypatch.setattr(dataset_store_module, "_engine", None)
     monkeypatch.setattr(dataset_store_module, "_Session", None)
 
@@ -113,5 +115,6 @@ def isolated_test_database(tmp_path, monkeypatch):
     # can't accidentally inherit a closed/stale engine bound to a
     # tmp_path that pytest has already cleaned up.
     monkeypatch.setattr(experiment_store_module, "_store", None)
+    monkeypatch.setattr(experiment_definition_store_module, "_store", None)
     monkeypatch.setattr(dataset_store_module, "_engine", None)
     monkeypatch.setattr(dataset_store_module, "_Session", None)

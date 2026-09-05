@@ -87,6 +87,7 @@ class ExperimentRecord:
         confidence: str,
         primary_metric: str,
         execution_steps: list[ExecutionStep],
+        definition_id: str | None = None,
     ) -> None:
         self.experiment_id = experiment_id
         self.created_at = created_at
@@ -98,6 +99,13 @@ class ExperimentRecord:
         self.confidence = confidence
         self.primary_metric = primary_metric
         self.execution_steps = execution_steps
+        # Phase 1 groundwork for the Experiment Platform layer — links
+        # this analysis run back to the `ExperimentDefinition` it was
+        # launched from (app/core/experiment_definition_store.py). None
+        # for every run created via the existing /experiments/analyze
+        # flow until a later phase wires an "analyze this definition"
+        # entry point through; fully optional and backward compatible.
+        self.definition_id = definition_id
 
 
 class ExperimentStore(ABC):
@@ -112,6 +120,7 @@ class ExperimentStore(ABC):
         user_prompt: str,
         report: ExperimentReport,
         execution_steps: list[ExecutionStep],
+        definition_id: str | None = None,
     ) -> ExperimentRecord:
         """Persists a completed experiment run and returns its record."""
 
@@ -182,6 +191,15 @@ class ExperimentModel(Base):
 
     experiment_id: Mapped[str] = mapped_column(String(36), primary_key=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    # Phase 1 groundwork — nullable link to `experiment_definitions`
+    # (app/core/experiment_definition_store.py). Deliberately NOT a
+    # SQLAlchemy ForeignKey/relationship across the two stores: each
+    # store owns its own Base/engine construction independently (same
+    # reasoning as ExperimentStore vs DatasetStore already being
+    # separate), so this is a plain indexed string column, validated at
+    # the application layer instead of the DB layer. Always None until
+    # a later phase adds an "analyze this definition" entry point.
+    definition_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
     dataset_id: Mapped[str] = mapped_column(String(36), index=True)
     dataset_name: Mapped[str] = mapped_column(String(255))
     user_prompt: Mapped[str] = mapped_column(Text)
@@ -221,6 +239,7 @@ def _row_to_record(row: ExperimentModel) -> ExperimentRecord:
         confidence=row.confidence,
         primary_metric=row.primary_metric,
         execution_steps=[ExecutionStep.model_validate(s) for s in row.execution_steps_json],
+        definition_id=row.definition_id,
     )
 
 
@@ -241,6 +260,7 @@ class SQLExperimentStore(ExperimentStore):
         user_prompt: str,
         report: ExperimentReport,
         execution_steps: list[ExecutionStep],
+        definition_id: str | None = None,
     ) -> ExperimentRecord:
         import uuid
 
@@ -256,6 +276,7 @@ class SQLExperimentStore(ExperimentStore):
         row = ExperimentModel(
             experiment_id=experiment_id,
             created_at=created_at,
+            definition_id=definition_id,
             dataset_id=dataset_id,
             dataset_name=dataset_name,
             user_prompt=user_prompt,
@@ -282,6 +303,7 @@ class SQLExperimentStore(ExperimentStore):
             confidence=report.confidence.value,
             primary_metric=primary_metric,
             execution_steps=execution_steps,
+            definition_id=definition_id,
         )
 
     def get(self, experiment_id: str) -> ExperimentRecord | None:
