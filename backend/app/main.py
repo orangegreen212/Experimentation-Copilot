@@ -11,6 +11,7 @@ configure_tracing()
 
 from app.api.routes_datasets import router as datasets_router
 from app.api.routes_experiments import router as experiments_router
+from app.api.routes_planning import router as planning_router
 from app.api.routes_system import router as system_router
 
 app = FastAPI(
@@ -46,6 +47,7 @@ app.add_middleware(
 
 app.include_router(datasets_router)
 app.include_router(experiments_router)
+app.include_router(planning_router)
 app.include_router(system_router)
 
 
