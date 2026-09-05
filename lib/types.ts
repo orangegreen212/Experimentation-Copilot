@@ -593,6 +593,54 @@ export interface HypothesisEvaluation {
   evaluationNote?: string | null;
 }
 
+// ---------------------------------------------------------------------------
+// Sample size planning — pre-experiment "Create Experiment" screen.
+// See backend/app/schemas/hypothesis.py's SampleSizePlanRequest/Response
+// for the authoritative field list; mirror it exactly here.
+// ---------------------------------------------------------------------------
+
+export type PlanningMetricType = 'binary' | 'continuous_monetary' | 'continuous_general';
+
+export interface SampleSizePlanRequest {
+  metricType: PlanningMetricType;
+  baselineRate: number;
+  baselineStd?: number | null;
+  mdeRelativePct: number;
+  numVariants: number;
+  dailyTrafficPerArm?: number | null;
+}
+
+export interface SampleSizePlan {
+  requiredNPerArm: number;
+  requiredNTotal: number;
+  alpha: number;
+  targetPower: number;
+  effectSize: number;
+}
+
+export interface SampleSizePlanResponse {
+  plan: SampleSizePlan;
+  estimatedDays?: number | null;
+}
+
+/**
+ * A fully specified experiment plan, captured on the "Create Experiment"
+ * screen before any dataset is selected. Kept client-side only (not
+ * persisted to the backend) — once the analyst picks a dataset, its own
+ * hypothesis (see Hypothesis above) becomes the source of truth for
+ * that specific run; this plan exists to inform that choice, e.g. by
+ * carrying the statement/primaryMetric/guardrails forward as sensible
+ * defaults into HypothesisForm.
+ */
+export interface ExperimentPlan {
+  statement: string;
+  primaryMetric: string;
+  expectedDirection: ExpectedDirection;
+  guardrailMetricNames: string[];
+  sampleSizeRequest?: SampleSizePlanRequest | null;
+  sampleSizeResult?: SampleSizePlanResponse | null;
+}
+
 /**
  * Phase 3 — deterministic Decision Support. Every field here is
  * either copied straight from an existing deterministic backend fact

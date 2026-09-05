@@ -24,6 +24,8 @@ import type {
   RelatedExperiment,
   Settings,
   SystemInfo,
+  SampleSizePlanRequest,
+  SampleSizePlanResponse,
 } from './types';
 
 /**
@@ -118,6 +120,26 @@ export async function listRealDatasets(): Promise<RealDatasetOption[]> {
   if (!response.ok) {
     throw new ApiError(await parseErrorDetail(response), response.status);
   }
+  return response.json();
+}
+
+// ---------------------------------------------------------------------------
+// POST /experiments/plan-sample-size
+// ---------------------------------------------------------------------------
+
+export async function planSampleSize(
+  request: SampleSizePlanRequest
+): Promise<SampleSizePlanResponse> {
+  const response = await fetch(`${API_URL}/experiments/plan-sample-size`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    throw new ApiError(await parseErrorDetail(response), response.status);
+  }
+
   return response.json();
 }
 
