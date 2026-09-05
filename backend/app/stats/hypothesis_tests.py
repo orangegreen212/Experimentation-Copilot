@@ -53,7 +53,12 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from scipy import stats as scipy_stats
+from app.core.lazy_import import LazyModule
+
+# Deferred: this module is imported at startup (via graph_builder ->
+# experiment_node), but scipy is only needed once a real hypothesis
+# test runs — see app/core/lazy_import.py.
+scipy_stats = LazyModule("scipy.stats")
 
 from app.core.config import stats_thresholds
 from app.schemas.statistics import (

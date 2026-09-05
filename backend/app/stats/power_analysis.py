@@ -12,8 +12,15 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from statsmodels.stats.power import NormalIndPower, TTestIndPower
-from statsmodels.stats.proportion import proportion_effectsize
+
+# statsmodels is imported lazily inside each function that needs it
+# (_binary_power / _continuous_power / plan_required_sample_size)
+# rather than at module level: this module is pulled in at process
+# startup via graph_builder -> experiment_node, and statsmodels is a
+# heavy C-extension import that's only actually needed once a real
+# power calculation runs — deferring it keeps startup lighter on
+# memory/CPU-constrained deploys. See app/core/lazy_import.py for the
+# equivalent pattern used for scipy.stats elsewhere in app/stats/.
 
 from app.core.config import stats_thresholds
 from app.schemas.statistics import MetricType, PowerAnalysisResult
@@ -42,6 +49,9 @@ def compute_power_analysis(
 def _binary_power(
     control: pd.Series, variant: pd.Series, n_control: int, ratio: float, alpha: float, target_power: float
 ) -> PowerAnalysisResult:
+    from statsmodels.stats.power import NormalIndPower
+    from statsmodels.stats.proportion import proportion_effectsize
+
     p_c, p_v = control.mean(), variant.mean()
     observed_effect_size = abs(proportion_effectsize(p_v, p_c))
 
@@ -67,6 +77,8 @@ def _binary_power(
 def _continuous_power(
     control: pd.Series, variant: pd.Series, n_control: int, ratio: float, alpha: float, target_power: float
 ) -> PowerAnalysisResult:
+    from statsmodels.stats.power import TTestIndPower
+
     mean_c, mean_v = control.mean(), variant.mean()
     pooled_std = _pooled_std(control, variant)
     observed_effect_size = abs(mean_v - mean_c) / pooled_std if pooled_std > 0 else 0.0
@@ -244,11 +256,16 @@ def plan_required_sample_size(
     target_power = stats_thresholds.target_power if target_power is None else target_power
 
     if metric_type == MetricType.BINARY:
+        from statsmodels.stats.power import NormalIndPower
+        from statsmodels.stats.proportion import proportion_effectsize
+
         p1 = baseline_rate
         p2 = min(max(p1 * (1 + mde_relative_pct / 100), 0.0), 1.0)
         effect_size = abs(proportion_effectsize(p2, p1))
         analysis = NormalIndPower()
     else:
+        from statsmodels.stats.power import TTestIndPower
+
         if not baseline_std or baseline_std <= 0:
             raise ValueError("baseline_std must be a positive number for continuous metrics (metric_type != BINARY).")
         delta = baseline_rate * (mde_relative_pct / 100)

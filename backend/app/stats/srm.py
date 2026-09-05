@@ -14,7 +14,11 @@ handling here — that's the caller's job (quality_node in Stage 5+).
 
 from __future__ import annotations
 
-from scipy import stats as scipy_stats
+from app.core.lazy_import import LazyModule
+
+# Deferred: only needed once check_srm()/check_srm_multi_arm() run the
+# chi-square test, not at import time — see app/core/lazy_import.py.
+scipy_stats = LazyModule("scipy.stats")
 
 from app.core.config import stats_thresholds
 from app.schemas.quality import QualityCheck, SRMResult
