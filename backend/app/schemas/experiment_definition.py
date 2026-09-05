@@ -167,6 +167,27 @@ class Targeting(CamelModel):
     traffic_allocation_pct: float | None = Field(default=None, ge=0, le=100)
 
 
+class RandomizationUnit(str, Enum):
+    """
+    What a single "unit" of the experiment's random assignment is —
+    Stage 0 doc §6 ("Assignment"). Deliberately a closed set, same
+    enum convention as `ExperimentStatus`/`HypothesisRole` above.
+
+    NOTE: like the rest of `ExperimentDefinition`, this is descriptive
+    planning metadata only — it does NOT configure a real feature-flag
+    or randomization service (no code path actually assigns users to
+    variants based on this value in this phase). It exists so the
+    Assignment section can state and persist what the analyst INTENDS
+    the unit to be; the existing SRM check (app/stats/srm.py) is what
+    verifies the real observed split at analysis time, independent of
+    this field.
+    """
+
+    USER = "user"
+    SESSION = "session"
+    DEVICE = "device"
+
+
 class Exposure(CamelModel):
     """
     Assigned vs. exposed users (Stage 0 doc §7) — populated once
@@ -212,6 +233,7 @@ class ExperimentDefinitionBase(CamelModel):
     hypotheses: list[RoledHypothesis] = Field(default_factory=list)
     variants: list[Variant] = Field(default_factory=list)
     targeting: Targeting = Field(default_factory=Targeting)
+    randomization_unit: RandomizationUnit = RandomizationUnit.USER
     metrics: list[ExperimentMetric] = Field(default_factory=list)
     exposure: Exposure = Field(default_factory=Exposure)
 
@@ -312,6 +334,7 @@ class ExperimentDefinitionUpdateRequest(CamelModel):
     hypotheses: list[RoledHypothesis] | None = None
     variants: list[Variant] | None = None
     targeting: Targeting | None = None
+    randomization_unit: RandomizationUnit | None = None
     metrics: list[ExperimentMetric] | None = None
     exposure: Exposure | None = None
     expected_duration_days: int | None = None

@@ -898,6 +898,11 @@ export interface Targeting {
   trafficAllocationPct?: number | null;
 }
 
+/** Mirrors RandomizationUnit in schemas/experiment_definition.py.
+ *  Descriptive planning metadata only — see that enum's docstring;
+ *  nothing in this phase actually assigns users based on this value. */
+export type RandomizationUnit = 'user' | 'session' | 'device';
+
 export interface Exposure {
   assignedUsers?: number | null;
   exposedUsers?: number | null;
@@ -924,6 +929,7 @@ export interface ExperimentDefinitionFields {
   hypotheses: RoledHypothesis[];
   variants: Variant[];
   targeting: Targeting;
+  randomizationUnit: RandomizationUnit;
   metrics: ExperimentMetric[];
   exposure: Exposure;
   expectedDurationDays?: number | null;

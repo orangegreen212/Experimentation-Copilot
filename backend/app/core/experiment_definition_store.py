@@ -35,6 +35,7 @@ from app.schemas.experiment_definition import (
     ExperimentStatus,
     ExperimentMetric,
     MetricRole,
+    RandomizationUnit,
     RoledHypothesis,
     Targeting,
     Variant,
@@ -96,6 +97,15 @@ class ExperimentDefinitionModel(Base):
     hypotheses_json: Mapped[list] = mapped_column(JSON, default=list)
     variants_json: Mapped[list] = mapped_column(JSON, default=list)
     targeting_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    # NOTE: added after this table's first deploy. `Base.metadata.create_all()`
+    # (see SQLExperimentDefinitionStore.__init__ below) only creates
+    # tables that don't exist yet — it does NOT ALTER an existing table
+    # to add new columns (this project has no Alembic/migration
+    # tooling). A fresh DB picks this column up automatically; an
+    # already-deployed Postgres DB needs a one-time manual
+    # `ALTER TABLE experiment_definitions ADD COLUMN randomization_unit
+    # VARCHAR(16) NOT NULL DEFAULT 'user'` before this column is read.
+    randomization_unit: Mapped[str] = mapped_column(String(16), default=RandomizationUnit.USER.value)
     metrics_json: Mapped[list] = mapped_column(JSON, default=list)
     exposure_json: Mapped[dict] = mapped_column(JSON, default=dict)
 
@@ -121,6 +131,7 @@ def _row_to_record(row: ExperimentDefinitionModel) -> ExperimentDefinition:
         hypotheses=[RoledHypothesis.model_validate(h) for h in (row.hypotheses_json or [])],
         variants=[Variant.model_validate(v) for v in (row.variants_json or [])],
         targeting=Targeting.model_validate(row.targeting_json or {}),
+        randomization_unit=RandomizationUnit(row.randomization_unit),
         metrics=[ExperimentMetric.model_validate(m) for m in (row.metrics_json or [])],
         exposure=Exposure.model_validate(row.exposure_json or {}),
         expected_duration_days=row.expected_duration_days,
@@ -181,6 +192,7 @@ class SQLExperimentDefinitionStore(ExperimentDefinitionStore):
                 json.dumps([v.model_dump(by_alias=True) for v in definition_in.variants])
             ),
             targeting_json=json.loads(definition_in.targeting.model_dump_json(by_alias=True)),
+            randomization_unit=definition_in.randomization_unit.value,
             metrics_json=json.loads(
                 json.dumps([m.model_dump(by_alias=True) for m in definition_in.metrics])
             ),
@@ -255,6 +267,8 @@ class SQLExperimentDefinitionStore(ExperimentDefinitionStore):
                 )
             if "targeting" in data and data["targeting"] is not None:
                 row.targeting_json = json.loads(update_in.targeting.model_dump_json(by_alias=True))
+            if "randomization_unit" in data and data["randomization_unit"] is not None:
+                row.randomization_unit = update_in.randomization_unit.value
             if "metrics" in data and data["metrics"] is not None:
                 row.metrics_json = json.loads(
                     json.dumps([m.model_dump(by_alias=True) for m in update_in.metrics])

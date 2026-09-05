@@ -40,6 +40,8 @@ import {
 } from '@/lib/api';
 import { ExperimentDesignForm } from '@/components/experiment-design-form';
 import { ExperimentVariantsForm } from '@/components/experiment-variants-form';
+import { ExperimentTargetingForm } from '@/components/experiment-targeting-form';
+import { ExperimentAssignmentForm } from '@/components/experiment-assignment-form';
 import type {
   ExperimentDefinition,
   ExperimentDefinitionSummary,
@@ -393,6 +395,19 @@ export function ExperimentLibrary({ refreshKey, onContinueToAnalysis }: Experime
 
             {/* Phase 4 — Variants: Control + Treatment arms with allocation. */}
             <ExperimentVariantsForm
+              definition={detail}
+              onSaved={(updated) => setDetail(updated)}
+            />
+
+            {/* Phase 5 — Targeting: descriptive audience-filter metadata. */}
+            <ExperimentTargetingForm
+              definition={detail}
+              onSaved={(updated) => setDetail(updated)}
+            />
+
+            {/* Phase 6 — Assignment: randomization unit + expected split,
+                read from the Variants section above. */}
+            <ExperimentAssignmentForm
               definition={detail}
               onSaved={(updated) => setDetail(updated)}
             />

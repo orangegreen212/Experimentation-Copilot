@@ -6,6 +6,7 @@ from app.schemas.experiment_definition import (
     ExperimentMetric,
     HypothesisRole,
     MetricRole,
+    RandomizationUnit,
     RoledHypothesis,
     Variant,
 )
@@ -25,6 +26,18 @@ def test_minimal_definition_defaults_to_draft():
     assert definition.status.value == "draft"
     assert definition.hypotheses == []
     assert definition.variants == []
+
+
+def test_randomization_unit_defaults_to_user():
+    definition = ExperimentDefinitionCreateRequest(name="Landing Page Redesign")
+    assert definition.randomization_unit == RandomizationUnit.USER
+
+
+def test_randomization_unit_can_be_set_explicitly():
+    definition = ExperimentDefinitionCreateRequest(
+        name="Landing Page Redesign", randomization_unit=RandomizationUnit.SESSION
+    )
+    assert definition.randomization_unit == RandomizationUnit.SESSION
 
 
 def test_blank_name_rejected():
