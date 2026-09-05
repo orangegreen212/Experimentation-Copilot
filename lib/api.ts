@@ -16,6 +16,10 @@ import type {
   ChatStreamEvent,
   DatasetInfo,
   ExecutionStep,
+  ExperimentDefinition,
+  ExperimentDefinitionCreateRequest,
+  ExperimentDefinitionSummary,
+  ExperimentDefinitionUpdateRequest,
   ExperimentDetail,
   ExperimentReport,
   ExperimentSummary,
@@ -619,4 +623,66 @@ export async function streamChatResponse(
 
   if (doneMessage) return doneMessage;
   throw new Error('The chat stream ended without a response.');
+}
+
+// ---------------------------------------------------------------------------
+// ExperimentDefinition CRUD — Experiment Platform layer, Phase 2.
+// Backend: app/api/routes_experiment_definitions.py. Deliberately
+// separate from the /experiments/* calls above: a definition has its
+// own lifecycle independent of any analysis run (see lib/types.ts's
+// ExperimentDefinition docstring).
+// ---------------------------------------------------------------------------
+
+export async function createExperimentDefinition(
+  request: ExperimentDefinitionCreateRequest
+): Promise<ExperimentDefinition> {
+  const response = await fetch(`${API_URL}/experiment-definitions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  });
+  if (!response.ok) {
+    throw new ApiError(await parseErrorDetail(response), response.status);
+  }
+  return response.json();
+}
+
+export async function listExperimentDefinitions(): Promise<ExperimentDefinitionSummary[]> {
+  const response = await fetch(`${API_URL}/experiment-definitions`);
+  if (!response.ok) {
+    throw new ApiError(await parseErrorDetail(response), response.status);
+  }
+  return response.json();
+}
+
+export async function getExperimentDefinition(definitionId: string): Promise<ExperimentDefinition> {
+  const response = await fetch(`${API_URL}/experiment-definitions/${definitionId}`);
+  if (!response.ok) {
+    throw new ApiError(await parseErrorDetail(response), response.status);
+  }
+  return response.json();
+}
+
+export async function updateExperimentDefinition(
+  definitionId: string,
+  request: ExperimentDefinitionUpdateRequest
+): Promise<ExperimentDefinition> {
+  const response = await fetch(`${API_URL}/experiment-definitions/${definitionId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  });
+  if (!response.ok) {
+    throw new ApiError(await parseErrorDetail(response), response.status);
+  }
+  return response.json();
+}
+
+export async function deleteExperimentDefinition(definitionId: string): Promise<void> {
+  const response = await fetch(`${API_URL}/experiment-definitions/${definitionId}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    throw new ApiError(await parseErrorDetail(response), response.status);
+  }
 }

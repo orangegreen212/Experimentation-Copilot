@@ -841,3 +841,126 @@ export interface RelatedExperiment {
   confidence: ConfidenceLevel;
   primaryMetric: string;
 }
+
+// ---------------------------------------------------------------------------
+// ExperimentDefinition — Experiment Platform layer, Phase 1/2.
+// Mirrors backend/app/schemas/experiment_definition.py exactly. This is
+// the NEW pre-analysis planning entity (Experiment Library / Design /
+// Variants / Targeting / Metrics) — a completely separate concept from
+// `ExperimentSummary`/`ExperimentDetail` above, which represent an
+// already-completed analysis run. See that schema's module docstring
+// for the full architectural boundary (planning metadata only; never
+// read by the stats engine in this phase).
+// ---------------------------------------------------------------------------
+
+export type ExperimentStatus =
+  | 'draft'
+  | 'ready'
+  | 'running'
+  | 'completed'
+  | 'needs_investigation'
+  | 'invalid'
+  | 'shipped'
+  | 'archived';
+
+export type HypothesisRole = 'primary' | 'secondary';
+
+export interface RoledHypothesis {
+  role: HypothesisRole;
+  hypothesis: Hypothesis;
+}
+
+export type MetricRole = 'primary' | 'secondary' | 'guardrail';
+
+export interface ExperimentMetric {
+  name: string;
+  role: MetricRole;
+  type: PlanningMetricType;
+  description?: string | null;
+  fieldDefinition?: string | null;
+}
+
+export interface Variant {
+  id: string;
+  name: string;
+  description?: string | null;
+  isControl: boolean;
+  allocationPct: number;
+}
+
+export interface Targeting {
+  countries: string[];
+  platforms: string[];
+  devices: string[];
+  userType?: string | null;
+  acquisitionChannel?: string | null;
+  userSegment?: string | null;
+  trafficAllocationPct?: number | null;
+}
+
+export interface Exposure {
+  assignedUsers?: number | null;
+  exposedUsers?: number | null;
+}
+
+export type DataSourceType = 'uploaded_csv' | 'existing_dataset' | 'public_dataset';
+
+export interface DataSourceRef {
+  type: DataSourceType;
+  datasetId?: string | null;
+  datasetName?: string | null;
+}
+
+/** Shared fields for create/update requests and the full record — same
+ *  split as ExperimentDefinitionBase in the backend schema. */
+export interface ExperimentDefinitionFields {
+  name: string;
+  productArea?: string | null;
+  owner?: string | null;
+  team?: string | null;
+  status: ExperimentStatus;
+  problemStatement?: string | null;
+  objective?: string | null;
+  hypotheses: RoledHypothesis[];
+  variants: Variant[];
+  targeting: Targeting;
+  metrics: ExperimentMetric[];
+  exposure: Exposure;
+  expectedDurationDays?: number | null;
+  targetSampleSize?: number | null;
+  mdeRelativePct?: number | null;
+  dataSource?: DataSourceRef | null;
+}
+
+export interface ExperimentDefinition extends ExperimentDefinitionFields {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Lightweight row for the Experiment Library list — mirrors
+ *  ExperimentDefinitionSummary in the backend schema exactly. */
+export interface ExperimentDefinitionSummary {
+  id: string;
+  name: string;
+  status: ExperimentStatus;
+  productArea?: string | null;
+  owner?: string | null;
+  primaryMetric?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Body for POST /experiment-definitions. Every field beyond `name` is
+ *  optional — `status` defaults to 'draft' server-side if omitted. */
+export type ExperimentDefinitionCreateRequest = Partial<
+  Omit<ExperimentDefinitionFields, 'name' | 'status'>
+> & {
+  name: string;
+  status?: ExperimentStatus;
+};
+
+/** Body for PATCH /experiment-definitions/{id} — every field optional,
+ *  only fields present in the object are changed server-side. */
+export type ExperimentDefinitionUpdateRequest = Partial<ExperimentDefinitionFields>;
+

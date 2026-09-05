@@ -15,7 +15,7 @@ import {
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 
-export type View = 'overview' | 'experiments' | 'datasets' | 'metrics' | 'settings';
+export type View = 'library' | 'overview' | 'experiments' | 'datasets' | 'metrics' | 'settings';
 
 interface SidebarProps {
   view: View;
@@ -31,7 +31,8 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { id: 'overview', label: 'Overview', icon: FolderKanban },
+  { id: 'library', label: 'Library', icon: FolderKanban },
+  { id: 'overview', label: 'New Analysis', icon: FlaskConical },
   { id: 'experiments', label: 'Experiments', icon: History },
   { id: 'datasets', label: 'Datasets', icon: Database },
   { id: 'metrics', label: 'Metrics', icon: BarChart3, comingSoon: true },

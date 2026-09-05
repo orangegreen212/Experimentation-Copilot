@@ -6,9 +6,14 @@ import { WorkspaceView } from '@/components/workspace-view';
 import { HistoryView } from '@/components/history-view';
 import { DatasetsView } from '@/components/datasets-view';
 import { ExperimentConfig } from '@/components/experiment-config';
+import { ExperimentLibrary } from '@/components/experiment-library';
 import type { Settings } from '@/lib/types';
 
 const VIEW_COPY: Record<View, { title: string; subtitle: string }> = {
+  library: {
+    title: 'Experiment Library',
+    subtitle: 'Plan experiments, track status, and continue into analysis when ready',
+  },
   overview: {
     title: 'Overview',
     subtitle: 'Upload data, configure the analysis, and review the AI-generated report',
@@ -26,7 +31,7 @@ const VIEW_COPY: Record<View, { title: string; subtitle: string }> = {
 };
 
 export default function Home() {
-  const [view, setView] = useState<View>('overview');
+  const [view, setView] = useState<View>('library');
   // Bumped whenever a new experiment is saved, so Experiments/Datasets
   // know to refetch even if the user doesn't manually revisit them.
   const [historyVersion, setHistoryVersion] = useState(0);
@@ -64,6 +69,12 @@ export default function Home() {
             <h2 className="text-[15px] font-semibold tracking-tight text-black">{copy.title}</h2>
             <p className="text-xs text-neutral-400">{copy.subtitle}</p>
           </div>
+          {view === 'library' && (
+            <ExperimentLibrary
+              refreshKey={historyVersion}
+              onContinueToAnalysis={() => setView('overview')}
+            />
+          )}
           {view === 'overview' && (
             <div className="space-y-4">
               <div className="mx-auto max-w-3xl">
