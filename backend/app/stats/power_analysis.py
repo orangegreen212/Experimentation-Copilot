@@ -209,3 +209,64 @@ def format_sample_size_note(result: PowerAnalysisResult) -> str:
         f"~{result.required_sample_size:,} users/arm recommended to reliably detect "
         f"the observed effect (not the {abs(result.minimum_detectable_effect_relative):.1f}% relative MDE)"
     )
+
+
+def plan_required_sample_size(
+    baseline_rate: float,
+    mde_relative_pct: float,
+    metric_type: MetricType,
+    baseline_std: float | None = None,
+    alpha: float | None = None,
+    target_power: float | None = None,
+    ratio: float = 1.0,
+    num_variants: int = 2,
+) -> "SampleSizePlan":
+    """
+    A-PRIORI sample size planning — the inverse problem from
+    `compute_power_analysis` above. That function asks "given the data
+    I already collected, was it enough?" This function asks "before
+    collecting anything, how much would I need?"
+
+    Inputs are hypothetical (an assumed baseline + the smallest
+    relative effect worth detecting), not observed data — this is the
+    only function in this module that takes no pandas Series. Used by
+    the pre-experiment "Create Experiment" planning screen, never by
+    the post-hoc analysis pipeline.
+
+    For CONTINUOUS metrics, `baseline_std` (the assumed standard
+    deviation of the metric) is required — unlike the binary case,
+    there is no way to derive a variance from a single baseline
+    number for a continuous metric.
+    """
+    from app.schemas.hypothesis import SampleSizePlan  # local import: avoids a cycle (hypothesis.py -> statistics.py is the other direction)
+
+    alpha = stats_thresholds.significance_alpha if alpha is None else alpha
+    target_power = stats_thresholds.target_power if target_power is None else target_power
+
+    if metric_type == MetricType.BINARY:
+        p1 = baseline_rate
+        p2 = min(max(p1 * (1 + mde_relative_pct / 100), 0.0), 1.0)
+        effect_size = abs(proportion_effectsize(p2, p1))
+        analysis = NormalIndPower()
+    else:
+        if not baseline_std or baseline_std <= 0:
+            raise ValueError("baseline_std must be a positive number for continuous metrics (metric_type != BINARY).")
+        delta = baseline_rate * (mde_relative_pct / 100)
+        effect_size = abs(delta) / baseline_std
+        analysis = TTestIndPower()
+
+    if effect_size <= 1e-9:
+        raise ValueError("The minimum detectable effect must be non-zero.")
+
+    n_per_arm = int(np.ceil(
+        analysis.solve_power(effect_size=effect_size, alpha=alpha, power=target_power, ratio=ratio, nobs1=None)
+    ))
+    total_n = n_per_arm * num_variants
+
+    return SampleSizePlan(
+        required_n_per_arm=n_per_arm,
+        required_n_total=total_n,
+        alpha=alpha,
+        target_power=target_power,
+        effect_size=float(effect_size),
+    )
