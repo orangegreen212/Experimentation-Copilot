@@ -338,11 +338,17 @@ def _test_effect_heterogeneity(
     # (`_segment_effect_for_value`) already runs on the FULL segment,
     # since those are simple closed-form tests, not iterative fits.
     if len(subset) > _MAX_INTERACTION_TEST_ROWS:
-        subset = subset.groupby(variant_col, group_keys=False).apply(
-            lambda g: g.sample(
-                n=min(len(g), max(1, _MAX_INTERACTION_TEST_ROWS // subset[variant_col].nunique())),
-                random_state=_INTERACTION_TEST_SAMPLE_SEED,
-            )
+        # `GroupBy.sample(frac=...)` (not `.apply(lambda g: g.sample(...))`)
+        # deliberately — pandas 2.2+ changed `.apply`'s default to drop
+        # the grouping column from what's passed to the lambda
+        # (`include_groups`), which silently produced a `subset` missing
+        # `variant_col` here and broke every column reference below it.
+        # `.sample()` returns a plain row subset with every original
+        # column intact, and a single shared `frac` keeps each variant's
+        # proportion of the sample the same as in the full comparable set.
+        frac = _MAX_INTERACTION_TEST_ROWS / len(subset)
+        subset = subset.groupby(variant_col, group_keys=False).sample(
+            frac=frac, random_state=_INTERACTION_TEST_SAMPLE_SEED
         )
 
     work = pd.DataFrame(
