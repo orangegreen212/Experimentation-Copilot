@@ -59,6 +59,7 @@ import {
   verdictBadgeClass,
 } from '@/lib/report-format';
 import { ExperimentHeader } from '@/components/report/experiment-header';
+import { SummaryCards } from '@/components/report/summary-cards';
 import { KpiGrid } from '@/components/report/kpi-grid';
 import { HeroCard } from '@/components/report/hero-card';
 import { GuardrailSection } from '@/components/report/guardrail-section';
@@ -1675,6 +1676,12 @@ export function ReportCard({ report, datasetName, experimentId, prompt }: Report
         prompt={prompt}
         onDownload={() => downloadReportPdf(report, { datasetName, experimentId, prompt })}
       />
+
+      {/* 1.5. Compact "at a glance" strip — badges + Primary Metric /
+          Variants / Data Quality cards. Sits above the more detailed
+          HeroCard/KpiGrid below; same underlying data, just the fast
+          30-second read requested for the top of the report. */}
+      <SummaryCards report={report} />
 
       {/* 2, 3 & 3.5. Dashboard-style overview hero — verdict circle,
           effect/CI/p-value, four status tiles, guardrails and the
