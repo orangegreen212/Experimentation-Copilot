@@ -1,5 +1,13 @@
 import { createBrowserClient } from '@supabase/ssr';
-import type { SupabaseClient } from '@supabase/supabase-js';
+
+// Derived directly from createBrowserClient's own return type instead of a
+// hand-imported `SupabaseClient` from @supabase/supabase-js — that separate
+// import can resolve to a different generic instantiation (schema type
+// param) than what @supabase/ssr's createBrowserClient actually returns,
+// which is what caused the "GenericSchema is not assignable to 'public'"
+// build error. Always sourcing the type from the function itself keeps
+// the two in sync automatically, including across future version bumps.
+type BrowserSupabaseClient = ReturnType<typeof createBrowserClient>;
 
 /**
  * Browser-side Supabase client. Safe to call from any Client Component —
@@ -27,9 +35,9 @@ import type { SupabaseClient } from '@supabase/supabase-js';
  * means every call site in this tab shares the one client, so there's
  * only ever one lock holder to begin with.
  */
-let browserClient: SupabaseClient | undefined;
+let browserClient: BrowserSupabaseClient | undefined;
 
-export function createClient(): SupabaseClient {
+export function createClient(): BrowserSupabaseClient {
   let client = browserClient;
   if (!client) {
     client = createBrowserClient(
