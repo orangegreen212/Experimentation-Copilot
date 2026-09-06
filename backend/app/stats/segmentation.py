@@ -85,6 +85,15 @@ MAX_CARDINALITY = 10
 # segmenting mostly-null data produces misleading small-n comparisons.
 MAX_MISSING_FRACTION = 0.30
 
+# Cost guard for `_test_effect_heterogeneity`'s two statsmodels IRLS
+# fits — see the comment at its call site. Large enough that the
+# interaction test's power is essentially unaffected for realistic
+# per-segment sample sizes (well above MIN_SEGMENT_ARM_SIZE per arm
+# per segment), small enough to keep a single request's total
+# segmentation cost bounded no matter how large the source dataset is.
+_MAX_INTERACTION_TEST_ROWS = 20_000
+_INTERACTION_TEST_SAMPLE_SEED = 42
+
 _NON_CANDIDATE_VOCAB = set(
     c.lower() for c in _EVENT_COLUMN_CANDIDATES + _TIMESTAMP_COLUMN_CANDIDATES + _CUPED_COVARIATE_CANDIDATES
 )
@@ -312,6 +321,29 @@ def _test_effect_heterogeneity(
     subset = df[df[dimension].isin(comparable_raw_values)][[variant_col, dimension, metric_col]].dropna(
         subset=[metric_col]
     )
+
+    # Cost guard: the interaction test below fits TWO statsmodels IRLS
+    # models (logit or OLS) on `subset`. That's fine at the sizes this
+    # was originally exercised at, but on a large raw dataset (e.g. a
+    # few hundred thousand rows) two dense IRLS fits per dimension —
+    # run synchronously, once per usable segmentation dimension, all
+    # inside a single request — is expensive enough to blow past a
+    # platform request timeout with no Python exception to show for it
+    # (the process is killed mid-fit, not raised into). A random
+    # subsample preserves the test's validity (it's still a uniform
+    # random sample of the comparable rows, so the asymptotics the
+    # LR/F-test relies on are unaffected) while bounding worst-case
+    # cost regardless of how large the source dataset is. Only the
+    # interaction test is capped — every per-segment effect above
+    # (`_segment_effect_for_value`) already runs on the FULL segment,
+    # since those are simple closed-form tests, not iterative fits.
+    if len(subset) > _MAX_INTERACTION_TEST_ROWS:
+        subset = subset.groupby(variant_col, group_keys=False).apply(
+            lambda g: g.sample(
+                n=min(len(g), max(1, _MAX_INTERACTION_TEST_ROWS // subset[variant_col].nunique())),
+                random_state=_INTERACTION_TEST_SAMPLE_SEED,
+            )
+        )
 
     work = pd.DataFrame(
         {
