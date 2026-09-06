@@ -29,12 +29,14 @@ import type { SupabaseClient } from '@supabase/supabase-js';
  */
 let browserClient: SupabaseClient | undefined;
 
-export function createClient() {
-  if (!browserClient) {
-    browserClient = createBrowserClient(
+export function createClient(): SupabaseClient {
+  let client = browserClient;
+  if (!client) {
+    client = createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
+    browserClient = client;
   }
-  return browserClient;
+  return client;
 }
