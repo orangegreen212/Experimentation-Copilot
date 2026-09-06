@@ -28,7 +28,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { Loader2, Database, Upload, CheckCircle2 } from 'lucide-react';
+import { Loader2, Database, Upload, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -39,8 +39,9 @@ import {
   updateExperimentDefinition,
   ApiError,
   type RealDatasetOption,
+  type ClassifyDatasetResult,
 } from '@/lib/api';
-import type { ExperimentDefinition } from '@/lib/types';
+import type { ExperimentDefinition, HypothesisRole } from '@/lib/types';
 
 interface ExperimentDataSourceFormProps {
   definition: ExperimentDefinition;
@@ -55,6 +56,16 @@ export function ExperimentDataSourceForm({ definition, onSaved }: ExperimentData
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Set only right after a fresh classify() call in THIS session — there
+  // is no "get dataset by id" endpoint to re-derive it after a reload,
+  // so a definition whose data source was connected in an earlier
+  // session simply won't show the check below until reconnected. That's
+  // an acceptable gap: the moment this is actually actionable is right
+  // when the mismatch is introduced.
+  const [connectedMetricLabel, setConnectedMetricLabel] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+
   useEffect(() => {
     listRealDatasets()
       .then(setOptions)
@@ -65,12 +76,30 @@ export function ExperimentDataSourceForm({ definition, onSaved }: ExperimentData
   const connectedDatasetId = definition.dataSource?.datasetId ?? null;
   const connectedName = definition.dataSource?.datasetName ?? null;
 
-  const saveDataSource = async (datasetId: string, datasetName: string, type: 'existing_dataset' | 'uploaded_csv') => {
+  const primaryHypothesisIndex = definition.hypotheses.findIndex(
+    (h) => h.role === ('primary' as HypothesisRole)
+  );
+  const primaryHypothesis = primaryHypothesisIndex >= 0 ? definition.hypotheses[primaryHypothesisIndex] : null;
+
+  const metricMismatch =
+    connectedMetricLabel &&
+    primaryHypothesis &&
+    primaryHypothesis.hypothesis.primaryMetric.trim().toLowerCase() !== connectedMetricLabel.trim().toLowerCase()
+      ? { hypothesisMetric: primaryHypothesis.hypothesis.primaryMetric, datasetMetric: connectedMetricLabel }
+      : null;
+
+  const saveDataSource = async (
+    datasetId: string,
+    datasetName: string,
+    type: 'existing_dataset' | 'uploaded_csv',
+    metricLabel: string
+  ) => {
     setError(null);
     try {
       const updated = await updateExperimentDefinition(definition.id, {
         dataSource: { type, datasetId, datasetName },
       });
+      setConnectedMetricLabel(metricLabel);
       onSaved(updated);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not connect this dataset.');
@@ -80,8 +109,8 @@ export function ExperimentDataSourceForm({ definition, onSaved }: ExperimentData
   const handleChooseReal = async (option: RealDatasetOption) => {
     setConnectingKey(option.key);
     try {
-      const result = await classifyDataset({ datasetKey: option.key });
-      await saveDataSource(result.datasetId, option.label, 'existing_dataset');
+      const result: ClassifyDatasetResult = await classifyDataset({ datasetKey: option.key });
+      await saveDataSource(result.datasetId, option.label, 'existing_dataset', result.dataset.metricLabel);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not connect this dataset.');
     } finally {
@@ -92,13 +121,37 @@ export function ExperimentDataSourceForm({ definition, onSaved }: ExperimentData
   const handleUpload = async (file: File) => {
     setConnectingKey('__upload__');
     try {
-      const result = await classifyDataset({ file });
-      await saveDataSource(result.datasetId, result.fileName ?? file.name, 'uploaded_csv');
+      const result: ClassifyDatasetResult = await classifyDataset({ file });
+      await saveDataSource(
+        result.datasetId,
+        result.fileName ?? file.name,
+        'uploaded_csv',
+        result.dataset.metricLabel
+      );
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not classify this file.');
     } finally {
       setConnectingKey(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleSyncMetric = async () => {
+    if (!connectedMetricLabel || primaryHypothesisIndex < 0) return;
+    setSyncing(true);
+    setSyncError(null);
+    try {
+      const nextHypotheses = definition.hypotheses.map((h, i) =>
+        i === primaryHypothesisIndex
+          ? { ...h, hypothesis: { ...h.hypothesis, primaryMetric: connectedMetricLabel } }
+          : h
+      );
+      const updated = await updateExperimentDefinition(definition.id, { hypotheses: nextHypotheses });
+      onSaved(updated);
+    } catch (e) {
+      setSyncError(e instanceof ApiError ? e.message : 'Could not update the hypothesis.');
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -118,6 +171,29 @@ export function ExperimentDataSourceForm({ definition, onSaved }: ExperimentData
           <div className="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-[13px] text-green-800">
             <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
             Connected to <span className="font-medium">{connectedName || connectedDatasetId}</span>
+          </div>
+        )}
+
+        {metricMismatch && (
+          <div className="space-y-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-900">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <p>
+                Your primary hypothesis&apos;s metric is{' '}
+                <span className="font-medium">&ldquo;{metricMismatch.hypothesisMetric}&rdquo;</span>, but this
+                dataset&apos;s detected metric is{' '}
+                <span className="font-medium">&ldquo;{metricMismatch.datasetMetric}&rdquo;</span>. These must
+                match exactly for hypothesis evaluation to run — otherwise the report will show
+                &ldquo;evaluation unavailable&rdquo; even though the analysis itself succeeds.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 pl-5">
+              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleSyncMetric} disabled={syncing}>
+                {syncing && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
+                Use &ldquo;{metricMismatch.datasetMetric}&rdquo; instead
+              </Button>
+              {syncError && <span className="text-xs text-red-600">{syncError}</span>}
+            </div>
           </div>
         )}
 
