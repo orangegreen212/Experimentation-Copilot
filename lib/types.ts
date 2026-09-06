@@ -860,8 +860,7 @@ export type ExperimentStatus =
   | 'completed'
   | 'needs_investigation'
   | 'invalid'
-  | 'shipped'
-  | 'archived';
+  | 'shipped';
 
 export type HypothesisRole = 'primary' | 'secondary';
 
@@ -914,6 +913,12 @@ export interface DataSourceRef {
   type: DataSourceType;
   datasetId?: string | null;
   datasetName?: string | null;
+  /** Snapshotted from DatasetInfo at connect time — see the backend
+   *  DataSourceRef's docstring for why this is a snapshot, not a live
+   *  reference, and why it exists (driving the primary-metric picker
+   *  in ExperimentDesignForm instead of free text). */
+  metricLabel?: string | null;
+  availableMetrics?: string[];
 }
 
 /** Shared fields for create/update requests and the full record — same

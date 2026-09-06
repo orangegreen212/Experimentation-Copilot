@@ -8,6 +8,8 @@ import {
   Trash2,
   ArrowRight,
   Beaker,
+  CheckCircle2,
+  Circle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -44,6 +46,7 @@ import { ExperimentTargetingForm } from '@/components/experiment-targeting-form'
 import { ExperimentAssignmentForm } from '@/components/experiment-assignment-form';
 import { ExperimentMetricsForm } from '@/components/experiment-metrics-form';
 import { ExperimentDataSourceForm } from '@/components/experiment-data-source-form';
+import { getReadinessChecks, isStatusGated } from '@/lib/experiment-readiness';
 import { ExperimentDefinitionRuns } from '@/components/experiment-definition-runs';
 import type {
   ExperimentDefinition,
@@ -74,7 +77,6 @@ const STATUS_LABELS: Record<ExperimentStatus, string> = {
   needs_investigation: 'Needs Investigation',
   invalid: 'Invalid',
   shipped: 'Shipped',
-  archived: 'Archived',
 };
 
 const STATUS_STYLES: Record<ExperimentStatus, string> = {
@@ -85,7 +87,6 @@ const STATUS_STYLES: Record<ExperimentStatus, string> = {
   needs_investigation: 'border-amber-200 bg-amber-50 text-amber-700',
   invalid: 'border-red-200 bg-red-50 text-red-700',
   shipped: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  archived: 'border-neutral-200 bg-neutral-50 text-neutral-400',
 };
 
 const ALL_STATUSES: ExperimentStatus[] = [
@@ -96,7 +97,6 @@ const ALL_STATUSES: ExperimentStatus[] = [
   'needs_investigation',
   'invalid',
   'shipped',
-  'archived',
 ];
 
 
@@ -128,6 +128,7 @@ export function ExperimentLibrary({ refreshKey, settings, onContinueToAnalysis }
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [statusSaving, setStatusSaving] = useState(false);
+  const [statusBlockedReason, setStatusBlockedReason] = useState<string | null>(null);
 
   const refetchList = () => {
     setLoading(true);
@@ -153,6 +154,7 @@ export function ExperimentLibrary({ refreshKey, settings, onContinueToAnalysis }
     }
     setDetailLoading(true);
     setDetailError(null);
+    setStatusBlockedReason(null);
     getExperimentDefinition(selectedId)
       .then(setDetail)
       .catch((e) => {
@@ -211,6 +213,16 @@ export function ExperimentLibrary({ refreshKey, settings, onContinueToAnalysis }
 
   const handleStatusChange = async (status: ExperimentStatus) => {
     if (!detail) return;
+    setStatusBlockedReason(null);
+    if (isStatusGated(status)) {
+      const gaps = getReadinessChecks(detail).filter((c) => !c.met);
+      if (gaps.length > 0) {
+        setStatusBlockedReason(
+          `Can't mark this "${STATUS_LABELS[status]}" yet — missing: ${gaps.map((g) => g.label).join(', ')}.`
+        );
+        return;
+      }
+    }
     setStatusSaving(true);
     try {
       const updated = await updateExperimentDefinition(detail.id, { status });
@@ -370,6 +382,38 @@ export function ExperimentLibrary({ refreshKey, settings, onContinueToAnalysis }
               </div>
             </div>
 
+            {statusBlockedReason && (
+              <p className="-mt-2 text-xs text-amber-700">{statusBlockedReason}</p>
+            )}
+
+            {/* Readiness — gives Draft/Ready/Running/... actual teeth
+                (see lib/experiment-readiness.ts) without a backend
+                change: a compact checklist of the same pieces this
+                wizard's other sections already collect, so it's clear
+                at a glance what's blocking a status like Ready/Running/
+                Shipped rather than discovering it only from the error
+                above after picking one. */}
+            {detail.status !== 'invalid' && detail.status !== 'needs_investigation' && (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg border border-black/10 bg-neutral-50/60 px-3 py-2">
+                {getReadinessChecks(detail).map((c) => (
+                  <span
+                    key={c.label}
+                    className={cn(
+                      'flex items-center gap-1.5 text-xs',
+                      c.met ? 'text-green-700' : 'text-neutral-400'
+                    )}
+                  >
+                    {c.met ? (
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                    ) : (
+                      <Circle className="h-3.5 w-3.5" />
+                    )}
+                    {c.label}
+                  </span>
+                ))}
+              </div>
+            )}
+
             <Card className="border-black/10 shadow-none">
               <CardContent className="py-4">
                 <div className="flex flex-wrap items-center gap-4 text-xs text-neutral-400">
@@ -439,7 +483,11 @@ export function ExperimentLibrary({ refreshKey, settings, onContinueToAnalysis }
                 through the EXISTING analysis engine and browse its past
                 AnalysisRuns, each rendered with the same <ReportCard />
                 used everywhere else. */}
-            <ExperimentDefinitionRuns definition={detail} settings={settings} />
+            <ExperimentDefinitionRuns
+              definition={detail}
+              settings={settings}
+              onDefinitionUpdated={(updated) => setDetail(updated)}
+            />
 
             <Card className="border-dashed border-black/15 bg-neutral-50/60 shadow-none">
               <CardContent className="flex items-center justify-between gap-4 py-4">

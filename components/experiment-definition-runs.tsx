@@ -27,7 +27,15 @@
  */
 
 import { useEffect, useState } from 'react';
-import { FlaskConical, Loader2, ChevronRight, History as HistoryIcon } from 'lucide-react';
+import {
+  FlaskConical,
+  Loader2,
+  ChevronRight,
+  History as HistoryIcon,
+  Rocket,
+  Undo2,
+  RotateCcw,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -37,6 +45,7 @@ import {
   analyzeExperimentDefinition,
   getExperiment,
   listExperimentDefinitionRuns,
+  updateExperimentDefinition,
   ApiError,
 } from '@/lib/api';
 import type { ConfidenceLevel, ExperimentDefinition, ExperimentDetail, ExperimentSummary, Settings } from '@/lib/types';
@@ -47,6 +56,11 @@ interface ExperimentDefinitionRunsProps {
    *  Overview tab's Experiment Configuration panel — kept at the parent
    *  so it's one shared control, not a second, divergent settings UI. */
   settings: Settings;
+  /** Called after a Decision action (Ship/Roll back/Keep iterating)
+   *  successfully PATCHes the definition's status, so the caller
+   *  (ExperimentLibrary) can update its own copy — same pattern every
+   *  other *-form.tsx component's `onSaved` already uses. */
+  onDefinitionUpdated: (updated: ExperimentDefinition) => void;
 }
 
 const CONFIDENCE_STYLES: Record<ConfidenceLevel, string> = {
@@ -75,7 +89,7 @@ function runLabel(index: number, total: number): string {
   return `Analysis #${position}`;
 }
 
-export function ExperimentDefinitionRuns({ definition, settings }: ExperimentDefinitionRunsProps) {
+export function ExperimentDefinitionRuns({ definition, settings, onDefinitionUpdated }: ExperimentDefinitionRunsProps) {
   const [runs, setRuns] = useState<ExperimentSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -134,6 +148,22 @@ export function ExperimentDefinitionRuns({ definition, settings }: ExperimentDef
       setRunError(e instanceof ApiError ? e.message : 'Could not run the analysis.');
     } finally {
       setRunning(false);
+    }
+  };
+
+  const [decisionSaving, setDecisionSaving] = useState<'shipped' | 'completed' | 'ready' | null>(null);
+  const [decisionError, setDecisionError] = useState<string | null>(null);
+
+  const handleDecision = async (status: 'shipped' | 'completed' | 'ready') => {
+    setDecisionSaving(status);
+    setDecisionError(null);
+    try {
+      const updated = await updateExperimentDefinition(definition.id, { status });
+      onDefinitionUpdated(updated);
+    } catch (e) {
+      setDecisionError(e instanceof ApiError ? e.message : 'Could not update this experiment.');
+    } finally {
+      setDecisionSaving(null);
     }
   };
 
@@ -218,6 +248,66 @@ export function ExperimentDefinitionRuns({ definition, settings }: ExperimentDef
             );
           })}
         </div>
+
+        {/* "Make a decision" — a real action, not just a read-only
+            `decision` label buried in the report (own take on that
+            idea, not Amplitude's flow: three explicit outcomes that
+            actually move this definition's status, since nothing
+            previously did — see lib/experiment-readiness.ts's
+            docstring on why status had no teeth before this). Shown
+            once at least one run exists to decide about; each button
+            reflects/disables against the CURRENT status rather than
+            assuming a fresh decision is always being made. */}
+        {runs.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 border-t border-black/5 pt-3">
+            <span className="mr-1 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+              Decision
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 gap-1.5 border-green-200 text-xs text-green-700 hover:bg-green-50"
+              disabled={decisionSaving !== null || definition.status === 'shipped'}
+              onClick={() => handleDecision('shipped')}
+            >
+              {decisionSaving === 'shipped' ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Rocket className="h-3 w-3" />
+              )}
+              {definition.status === 'shipped' ? 'Shipped' : 'Ship the winner'}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 gap-1.5 text-xs text-neutral-600"
+              disabled={decisionSaving !== null || definition.status === 'completed'}
+              onClick={() => handleDecision('completed')}
+            >
+              {decisionSaving === 'completed' ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Undo2 className="h-3 w-3" />
+              )}
+              Roll back
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 gap-1.5 text-xs text-neutral-600"
+              disabled={decisionSaving !== null || definition.status === 'ready'}
+              onClick={() => handleDecision('ready')}
+            >
+              {decisionSaving === 'ready' ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <RotateCcw className="h-3 w-3" />
+              )}
+              Keep iterating
+            </Button>
+            {decisionError && <span className="text-xs text-red-600">{decisionError}</span>}
+          </div>
+        )}
 
         {detailError && <p className="text-xs text-red-600">{detailError}</p>}
         {detailLoading && (
