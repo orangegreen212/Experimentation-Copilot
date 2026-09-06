@@ -25,6 +25,18 @@
  *     Decision Scientist
  *           |
  *        Report
+ *
+ * Also snapshots the dataset's detected `metric_label`/
+ * `available_metrics` onto `data_source` (not just the id/name) —
+ * that's what lets ExperimentDesignForm render the primary-metric
+ * field as a picker instead of free text once a dataset is connected,
+ * so a hypothesis's `primary_metric` can no longer silently drift
+ * from the dataset's real metric name (the bug this replaced: a typo
+ * or paraphrase typed during Design, before any dataset existed to
+ * check it against, surfacing only much later as "Hypothesis
+ * Evaluation: UNAVAILABLE" deep in the report). The warning below is
+ * a safety net for hypotheses written before a dataset was connected,
+ * not the primary defense anymore.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -56,15 +68,14 @@ export function ExperimentDataSourceForm({ definition, onSaved }: ExperimentData
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Set only right after a fresh classify() call in THIS session — there
-  // is no "get dataset by id" endpoint to re-derive it after a reload,
-  // so a definition whose data source was connected in an earlier
-  // session simply won't show the check below until reconnected. That's
-  // an acceptable gap: the moment this is actually actionable is right
-  // when the mismatch is introduced.
-  const [connectedMetricLabel, setConnectedMetricLabel] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [backfilling, setBackfilling] = useState(false);
+  // Guards against re-triggering the backfill for the same connection
+  // (e.g. if the reclassify itself fails, don't retry-loop on every
+  // render) — keyed by datasetId so a genuinely NEW connection is
+  // never skipped.
+  const backfilledFor = useRef<string | null>(null);
 
   useEffect(() => {
     listRealDatasets()
@@ -73,14 +84,75 @@ export function ExperimentDataSourceForm({ definition, onSaved }: ExperimentData
       .finally(() => setLoadingOptions(false));
   }, []);
 
+  // Backward-compatible backfill: a definition whose data source was
+  // connected BEFORE `metricLabel`/`availableMetrics` existed on
+  // DataSourceRef has `dataSource.datasetId` but no `metricLabel` —
+  // which means the Design step's primary-metric picker silently
+  // falls back to free text and the mismatch warning below can never
+  // fire, for a definition that may well already have a mismatched
+  // hypothesis (exactly what was happening before this ran). Rather
+  // than requiring the analyst to notice and manually re-click an
+  // already-"Connected" dataset, re-run the same classify() this
+  // dataset was originally connected with and save the resulting
+  // metric metadata — visible via the small "Refreshing..." note
+  // below, never fully silent, and only for `existing_dataset`
+  // sources matched against the real-dataset list (an uploaded CSV's
+  // original file isn't available to reclassify, so those are left
+  // for a manual reconnect — see the docstring above).
+  useEffect(() => {
+    const ds = definition.dataSource;
+    if (
+      !ds ||
+      ds.type !== 'existing_dataset' ||
+      !ds.datasetId ||
+      ds.metricLabel ||
+      options.length === 0 ||
+      backfilledFor.current === ds.datasetId
+    ) {
+      return;
+    }
+    const match = options.find((o) => o.label === ds.datasetName);
+    if (!match) return;
+
+    backfilledFor.current = ds.datasetId;
+    setBackfilling(true);
+    classifyDataset({ datasetKey: match.key })
+      .then((result) =>
+        updateExperimentDefinition(definition.id, {
+          dataSource: {
+            type: 'existing_dataset',
+            datasetId: result.datasetId,
+            datasetName: match.label,
+            metricLabel: result.dataset.metricLabel,
+            availableMetrics: result.dataset.availableMetrics ?? [result.dataset.metricLabel],
+          },
+        })
+      )
+      .then(onSaved)
+      .catch(() => {
+        // Non-fatal — the analyst can still reconnect manually via the
+        // list below; no need to surface this as a hard error.
+      })
+      .finally(() => setBackfilling(false));
+  }, [definition.dataSource, definition.id, onSaved, options]);
+
   const connectedDatasetId = definition.dataSource?.datasetId ?? null;
   const connectedName = definition.dataSource?.datasetName ?? null;
+  // Persisted on `dataSource` (see DataSourceRef's docstring) rather than
+  // held in local state, so it survives a reload — the connected
+  // dataset's real metric name is what backs the Design step's
+  // primary-metric picker (ExperimentDesignForm), not just this
+  // mismatch warning.
+  const connectedMetricLabel = definition.dataSource?.metricLabel ?? null;
 
   const primaryHypothesisIndex = definition.hypotheses.findIndex(
     (h) => h.role === ('primary' as HypothesisRole)
   );
   const primaryHypothesis = primaryHypothesisIndex >= 0 ? definition.hypotheses[primaryHypothesisIndex] : null;
 
+  // Safety net for hypotheses written BEFORE a picker was available (or
+  // edited some other way) — the picker in ExperimentDesignForm is what
+  // now prevents this going forward, once a dataset is connected.
   const metricMismatch =
     connectedMetricLabel &&
     primaryHypothesis &&
@@ -92,14 +164,14 @@ export function ExperimentDataSourceForm({ definition, onSaved }: ExperimentData
     datasetId: string,
     datasetName: string,
     type: 'existing_dataset' | 'uploaded_csv',
-    metricLabel: string
+    metricLabel: string,
+    availableMetrics: string[]
   ) => {
     setError(null);
     try {
       const updated = await updateExperimentDefinition(definition.id, {
-        dataSource: { type, datasetId, datasetName },
+        dataSource: { type, datasetId, datasetName, metricLabel, availableMetrics },
       });
-      setConnectedMetricLabel(metricLabel);
       onSaved(updated);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not connect this dataset.');
@@ -110,7 +182,13 @@ export function ExperimentDataSourceForm({ definition, onSaved }: ExperimentData
     setConnectingKey(option.key);
     try {
       const result: ClassifyDatasetResult = await classifyDataset({ datasetKey: option.key });
-      await saveDataSource(result.datasetId, option.label, 'existing_dataset', result.dataset.metricLabel);
+      await saveDataSource(
+        result.datasetId,
+        option.label,
+        'existing_dataset',
+        result.dataset.metricLabel,
+        result.dataset.availableMetrics ?? [result.dataset.metricLabel]
+      );
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not connect this dataset.');
     } finally {
@@ -126,7 +204,8 @@ export function ExperimentDataSourceForm({ definition, onSaved }: ExperimentData
         result.datasetId,
         result.fileName ?? file.name,
         'uploaded_csv',
-        result.dataset.metricLabel
+        result.dataset.metricLabel,
+        result.dataset.availableMetrics ?? [result.dataset.metricLabel]
       );
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not classify this file.');
@@ -171,6 +250,12 @@ export function ExperimentDataSourceForm({ definition, onSaved }: ExperimentData
           <div className="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-[13px] text-green-800">
             <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
             Connected to <span className="font-medium">{connectedName || connectedDatasetId}</span>
+            {backfilling && (
+              <span className="ml-auto flex items-center gap-1.5 text-xs font-normal text-green-700/70">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Refreshing dataset metadata...
+              </span>
+            )}
           </div>
         )}
 
