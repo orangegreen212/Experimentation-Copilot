@@ -66,6 +66,8 @@ import { GuardrailSection } from '@/components/report/guardrail-section';
 import { RecommendationCard } from '@/components/report/recommendation-card';
 import { SegmentAnalysisSection } from '@/components/report/segment-analysis-section';
 import { CopilotSummary } from '@/components/report/copilot-summary';
+import { PrimaryMetricChart } from '@/components/report/primary-metric-chart';
+import { SrmPanel } from '@/components/report/srm-panel';
 
 interface ReportCardProps {
   report: ExperimentReport;
@@ -1192,25 +1194,43 @@ export function EvidenceSection({
   retrievalError?: string | null;
   blockingIssue?: string | null;
 }) {
+  // Collapsed by default, same pattern as DecisionAuditTrailSection below —
+  // this is supporting/citation detail, not the decision itself, so it
+  // shouldn't dominate the page on first render. Nothing is removed, only
+  // hidden behind the same click-to-expand toggle.
+  const [expanded, setExpanded] = useState(false);
+
   if (!attempted) return null;
 
   if (retrievalError) {
     return (
       <Card className="border-black/10 shadow-none">
-        <CardHeader className="pb-3">
+        <CardHeader
+          className="cursor-pointer select-none pb-3"
+          onClick={() => setExpanded((v) => !v)}
+        >
           <div className="flex items-center gap-2">
             <BookOpen className="h-4 w-4 text-black" />
             <CardTitle className="text-[15px] tracking-tight">Evidence &amp; Sources</CardTitle>
+            <Badge variant="outline" className="ml-auto border-red-200 text-[10px] font-semibold text-red-600">
+              Retrieval failed
+            </Badge>
+            <ChevronDown
+              className={cn('h-4 w-4 shrink-0 text-neutral-400 transition-transform', expanded && 'rotate-180')}
+            />
           </div>
+          <CardDescription>{expanded ? 'click to collapse' : 'click to expand'}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-1">
-          <p className="text-[12px] font-medium text-red-600">Knowledge base retrieval failed.</p>
-          <p className="text-[12px] text-neutral-500">
-            The knowledge base could not be queried, so no methodology evidence was used for this
-            decision. The decision above was based only on deterministic validation rules.
-          </p>
-          <p className="mt-1 text-[10px] text-neutral-400">Retrieval error: {retrievalError}</p>
-        </CardContent>
+        {expanded && (
+          <CardContent className="space-y-1">
+            <p className="text-[12px] font-medium text-red-600">Knowledge base retrieval failed.</p>
+            <p className="text-[12px] text-neutral-500">
+              The knowledge base could not be queried, so no methodology evidence was used for this
+              decision. The decision above was based only on deterministic validation rules.
+            </p>
+            <p className="mt-1 text-[10px] text-neutral-400">Retrieval error: {retrievalError}</p>
+          </CardContent>
+        )}
       </Card>
     );
   }
@@ -1218,34 +1238,54 @@ export function EvidenceSection({
   if (!references || references.length === 0) {
     return (
       <Card className="border-black/10 shadow-none">
-        <CardHeader className="pb-3">
+        <CardHeader
+          className="cursor-pointer select-none pb-3"
+          onClick={() => setExpanded((v) => !v)}
+        >
           <div className="flex items-center gap-2">
             <BookOpen className="h-4 w-4 text-black" />
             <CardTitle className="text-[15px] tracking-tight">Evidence &amp; Sources</CardTitle>
+            <ChevronDown
+              className={cn('ml-auto h-4 w-4 shrink-0 text-neutral-400 transition-transform', expanded && 'rotate-180')}
+            />
           </div>
+          <CardDescription>{expanded ? 'click to collapse' : 'click to expand'}</CardDescription>
         </CardHeader>
-        <CardContent>
-          <p className="text-[12px] text-neutral-500">
-            {blockingIssue
-              ? `No sufficiently relevant evidence found for: ${blockingIssue}.`
-              : "No sufficiently relevant evidence found."}
-          </p>
-        </CardContent>
+        {expanded && (
+          <CardContent>
+            <p className="text-[12px] text-neutral-500">
+              {blockingIssue
+                ? `No sufficiently relevant evidence found for: ${blockingIssue}.`
+                : "No sufficiently relevant evidence found."}
+            </p>
+          </CardContent>
+        )}
       </Card>
     );
   }
 
   return (
     <Card className="border-black/10 shadow-none">
-      <CardHeader className="pb-3">
+      <CardHeader
+        className="cursor-pointer select-none pb-3"
+        onClick={() => setExpanded((v) => !v)}
+      >
         <div className="flex items-center gap-2">
           <BookOpen className="h-4 w-4 text-black" />
           <CardTitle className="text-[15px] tracking-tight">Evidence &amp; Sources</CardTitle>
+          <Badge variant="outline" className="ml-auto border-black/10 text-[10px] text-neutral-500">
+            {references.length}
+          </Badge>
+          <ChevronDown
+            className={cn('h-4 w-4 shrink-0 text-neutral-400 transition-transform', expanded && 'rotate-180')}
+          />
         </div>
         <CardDescription>
-          Experimentation guidance retrieved from the knowledge base, relevant to this decision
+          Experimentation guidance retrieved from the knowledge base, relevant to this decision —{' '}
+          {expanded ? 'click to collapse' : 'click to expand'}
         </CardDescription>
       </CardHeader>
+      {expanded && (
       <CardContent className="space-y-2">
         {references.map((ref, i) => (
           <div key={`${ref.source}-${ref.heading}-${i}`} className="rounded-md border border-black/10 bg-neutral-50 px-3 py-2">
@@ -1260,6 +1300,7 @@ export function EvidenceSection({
           </div>
         ))}
       </CardContent>
+      )}
     </Card>
   );
 }
@@ -1721,6 +1762,10 @@ export function ReportCard({ report, datasetName, experimentId, prompt }: Report
       {report.decisionNarrative && <DecisionNarrativeSection narrative={report.decisionNarrative} />}
 
       {/* 5. Statistical Analysis */}
+      {(() => {
+        const primaryStat = report.stats.find((s) => s.metric === report.hypothesis?.primaryMetric) ?? report.stats[0];
+        return primaryStat ? <PrimaryMetricChart stat={primaryStat} /> : null;
+      })()}
       <Card className="border-black/10 shadow-none">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
@@ -1799,6 +1844,21 @@ export function ReportCard({ report, datasetName, experimentId, prompt }: Report
             <CardTitle className="text-[15px] tracking-tight">
               Data Quality &amp; Assumptions
             </CardTitle>
+            <Badge
+              variant="outline"
+              className={cn(
+                'ml-auto text-[10px] font-semibold',
+                report.qualityChecks.length > 0 && report.qualityChecks.every((c) => c.passed)
+                  ? 'border-green-200 bg-green-50 text-green-700'
+                  : 'border-amber-200 bg-amber-50 text-amber-700'
+              )}
+            >
+              {report.qualityChecks.length === 0
+                ? 'No checks run'
+                : report.qualityChecks.every((c) => c.passed)
+                ? 'All checks passed'
+                : 'Has warnings'}
+            </Badge>
           </div>
           <CardDescription>
             Automated checks on randomization, outliers, and missing data
@@ -1812,6 +1872,11 @@ export function ReportCard({ report, datasetName, experimentId, prompt }: Report
           </div>
         </CardContent>
       </Card>
+
+      {/* Assignment Quality (SRM) — visual split of Control/Treatment vs
+          expected, parsed from the existing SRM QualityCheck row above;
+          adds nothing the backend didn't already compute. */}
+      <SrmPanel qualityChecks={report.qualityChecks} />
 
       {/* 7. Segmentation Analysis — exploratory, supporting evidence only;
           kept visually and hierarchically secondary to the primary

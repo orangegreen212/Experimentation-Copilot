@@ -27,12 +27,26 @@ export function GuardrailSection({ report }: { report: ExperimentReport }) {
                 >
                   {g.violated ? <XCircle className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
                 </div>
-                <span className="text-[13px] font-medium text-black">{g.metric}</span>
+                <div>
+                  <span className="block text-[13px] font-medium text-black">{g.metric}</span>
+                  {(g.observedValue != null || g.relativeChange != null) && (
+                    <span className="block text-[11px] text-neutral-500">
+                      {g.observedValue != null && <>observed {g.observedValue.toLocaleString()}</>}
+                      {g.observedValue != null && g.relativeChange != null && ' · '}
+                      {g.relativeChange != null && (
+                        <>
+                          {g.relativeChange >= 0 ? '+' : ''}
+                          {g.relativeChange.toFixed(2)}% change
+                        </>
+                      )}
+                    </span>
+                  )}
+                </div>
               </div>
               <Badge
                 variant="outline"
                 className={cn(
-                  'text-[10px] font-semibold',
+                  'shrink-0 text-[10px] font-semibold',
                   g.violated
                     ? 'border-red-200 bg-red-50 text-red-700'
                     : 'border-green-200 bg-green-50 text-green-700'
@@ -47,3 +61,4 @@ export function GuardrailSection({ report }: { report: ExperimentReport }) {
     </div>
   );
 }
+
