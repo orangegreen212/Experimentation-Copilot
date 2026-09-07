@@ -42,15 +42,17 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ReportCard } from '@/components/report-card';
+import { FollowUpChat } from '@/components/follow-up-chat';
 import {
   analyzeExperimentDefinition,
   deleteExperiment,
+  followUpChat,
   getExperiment,
   listExperimentDefinitionRuns,
   updateExperimentDefinition,
   ApiError,
 } from '@/lib/api';
-import type { ConfidenceLevel, ExperimentDefinition, ExperimentDetail, ExperimentSummary, Settings } from '@/lib/types';
+import type { ChatMessage, ConfidenceLevel, ExperimentDefinition, ExperimentDetail, ExperimentSummary, Settings } from '@/lib/types';
 
 interface ExperimentDefinitionRunsProps {
   definition: ExperimentDefinition;
@@ -113,6 +115,14 @@ export function ExperimentDefinitionRuns({ definition, settings, onDefinitionUpd
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
 
+  // Chat for the currently-open run — same pattern as history-view.tsx's
+  // "Ask Copilot Anything" chat, just previously missing entirely from
+  // this Definition-scoped runs view (the button scrolled to a
+  // `#follow-up-chat` element that was never rendered here).
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
+
   const hasDataSource = Boolean(definition.dataSource?.datasetId);
 
   const refetchRuns = () => {
@@ -140,13 +150,34 @@ export function ExperimentDefinitionRuns({ definition, settings, onDefinitionUpd
     setDetailLoading(true);
     setDetailError(null);
     getExperiment(selectedId)
-      .then(setDetail)
+      .then((d) => {
+        setDetail(d);
+        setMessages(d.chatMessages);
+      })
       .catch((e) => {
         setDetail(null);
+        setMessages([]);
         setDetailError(e instanceof ApiError ? e.message : 'Could not load this analysis run.');
       })
       .finally(() => setDetailLoading(false));
   }, [selectedId]);
+
+  const handleFollowUp = async (content: string) => {
+    if (!selectedId) return;
+    const userMsg: ChatMessage = { id: `u-${Date.now()}`, role: 'user', content };
+    setMessages((prev) => [...prev, userMsg]);
+    setIsChatLoading(true);
+    setChatError(null);
+    try {
+      const reply = await followUpChat({ experimentId: selectedId, message: content, model: settings.model });
+      setMessages((prev) => [...prev, reply]);
+    } catch (e) {
+      setChatError(e instanceof ApiError ? e.message : 'Could not get a response. Please try again.');
+      setMessages((prev) => prev.filter((m) => m.id !== userMsg.id));
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
 
   const handleDeleteRun = async (experimentId: string) => {
     if (confirmingId !== experimentId) {
@@ -380,13 +411,15 @@ export function ExperimentDefinitionRuns({ definition, settings, onDefinitionUpd
         )}
 
         {!detailLoading && detail && (
-          <div className="pt-2">
+          <div className="space-y-4 pt-2">
             <ReportCard
               report={detail.report}
               datasetName={detail.datasetName}
               experimentId={detail.experimentId}
               prompt={detail.userPrompt}
             />
+            {chatError && <p className="text-xs text-red-600">{chatError}</p>}
+            <FollowUpChat messages={messages} onSend={handleFollowUp} isLoading={isChatLoading} />
           </div>
         )}
       </CardContent>
