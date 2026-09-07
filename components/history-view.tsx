@@ -9,7 +9,7 @@ import { ReportCard } from '@/components/report-card';
 import { FollowUpChat } from '@/components/follow-up-chat';
 import { RelatedExperiments } from '@/components/related-experiments';
 import { listExperiments, getExperiment, deleteExperiment, followUpChat, ApiError } from '@/lib/api';
-import type { ChatMessage, ConfidenceLevel, ExperimentDetail, ExperimentSummary } from '@/lib/types';
+import type { ChatMessage, ConfidenceLevel, ExperimentDetail, ExperimentSummary, Settings } from '@/lib/types';
 
 const CONFIDENCE_STYLES: Record<ConfidenceLevel, { badge: string; text: string }> = {
   HIGH: { badge: 'border-green-200 bg-green-50 text-green-700', text: 'text-green-600' },
@@ -23,9 +23,16 @@ interface HistoryViewProps {
   /** Pre-selects this experiment when the view first loads (e.g. jumped
    *  here from the Datasets tab's "View experiments" link). */
   initialExperimentId?: string;
+  /** Same model/CUPED/bootstrap toggles as the Overview tab's
+   *  ExperimentConfig panel — passed down so the "Ask Copilot Anything"
+   *  chat here actually uses the model the user picked instead of
+   *  silently falling back to the backend's paid default (this prop
+   *  was previously missing entirely, so `settings.model` was never
+   *  sent to `followUpChat()` below no matter what was selected). */
+  settings: Settings;
 }
 
-export function HistoryView({ refreshKey, initialExperimentId }: HistoryViewProps) {
+export function HistoryView({ refreshKey, initialExperimentId, settings }: HistoryViewProps) {
   const [sessions, setSessions] = useState<ExperimentSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -111,7 +118,7 @@ export function HistoryView({ refreshKey, initialExperimentId }: HistoryViewProp
     const userMsg: ChatMessage = { id: `u-${Date.now()}`, role: 'user', content };
     setMessages((prev) => [...prev, userMsg]);
     try {
-      const reply = await followUpChat({ experimentId: selectedId, message: content });
+      const reply = await followUpChat({ experimentId: selectedId, message: content, model: settings.model });
       setMessages((prev) => [...prev, reply]);
     } catch (e) {
       const detailMsg =

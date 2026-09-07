@@ -89,7 +89,7 @@ export default function Home() {
             </div>
           )}
           {view === 'experiments' && (
-            <HistoryView refreshKey={historyVersion} initialExperimentId={pendingExperimentId} />
+            <HistoryView refreshKey={historyVersion} initialExperimentId={pendingExperimentId} settings={settings} />
           )}
           {view === 'datasets' && (
             <DatasetsView refreshKey={historyVersion} onViewExperiments={goToExperiment} />
