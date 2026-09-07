@@ -35,6 +35,7 @@ import {
   Rocket,
   Undo2,
   RotateCcw,
+  Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -43,6 +44,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { ReportCard } from '@/components/report-card';
 import {
   analyzeExperimentDefinition,
+  deleteExperiment,
   getExperiment,
   listExperimentDefinitionRuns,
   updateExperimentDefinition,
@@ -98,6 +100,15 @@ export function ExperimentDefinitionRuns({ definition, settings, onDefinitionUpd
   const [runError, setRunError] = useState<string | null>(null);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Same click-to-confirm delete pattern as history-view.tsx's session
+  // list — reuses the same deleteExperiment(experimentId) API call,
+  // since each run IS an Experiment row (run.experimentId), just
+  // scoped here to one ExperimentDefinition's run list instead of the
+  // global history sidebar.
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [detail, setDetail] = useState<ExperimentDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
@@ -136,6 +147,27 @@ export function ExperimentDefinitionRuns({ definition, settings, onDefinitionUpd
       })
       .finally(() => setDetailLoading(false));
   }, [selectedId]);
+
+  const handleDeleteRun = async (experimentId: string) => {
+    if (confirmingId !== experimentId) {
+      // First click just arms the confirmation — avoids an accidental
+      // one-click delete on a row the user only meant to open.
+      setConfirmingId(experimentId);
+      return;
+    }
+    setConfirmingId(null);
+    setDeletingId(experimentId);
+    setDeleteError(null);
+    try {
+      await deleteExperiment(experimentId);
+      setRuns((prev) => prev.filter((r) => r.experimentId !== experimentId));
+      setSelectedId((prev) => (prev === experimentId ? null : prev));
+    } catch (e) {
+      setDeleteError(e instanceof ApiError ? e.message : 'Could not delete this analysis run.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const handleRunAnalysis = async () => {
     setRunning(true);
@@ -194,6 +226,7 @@ export function ExperimentDefinitionRuns({ definition, settings, onDefinitionUpd
       <CardContent className="space-y-3 pt-0">
         {runError && <p className="text-xs text-red-600">{runError}</p>}
         {loadError && <p className="text-xs text-red-600">{loadError}</p>}
+        {deleteError && <p className="text-xs text-red-600">{deleteError}</p>}
 
         {loading && (
           <div className="flex items-center gap-2 py-4 text-xs text-neutral-400">
@@ -211,40 +244,69 @@ export function ExperimentDefinitionRuns({ definition, settings, onDefinitionUpd
         <div className="space-y-1.5">
           {runs.map((run, i) => {
             const active = selectedId === run.experimentId;
+            const isConfirming = confirmingId === run.experimentId;
+            const isDeleting = deletingId === run.experimentId;
             return (
-              <button
-                key={run.experimentId}
-                type="button"
-                onClick={() => setSelectedId(active ? null : run.experimentId)}
-                className={cn(
-                  'flex w-full items-center justify-between gap-3 rounded-lg border p-3 text-left transition-colors',
-                  active ? 'border-black/20 bg-neutral-50' : 'border-black/10 hover:bg-neutral-50'
-                )}
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-[13px] font-medium text-black">{runLabel(i, runs.length)}</p>
-                  <p className="mt-0.5 truncate text-xs text-neutral-400">
-                    {new Date(run.createdAt).toLocaleString()} · {run.primaryMetric}
+              <div key={run.experimentId} className="group relative">
+                <button
+                  type="button"
+                  onClick={() => setSelectedId(active ? null : run.experimentId)}
+                  className={cn(
+                    'flex w-full items-center justify-between gap-3 rounded-lg border p-3 pr-10 text-left transition-colors',
+                    active ? 'border-black/20 bg-neutral-50' : 'border-black/10 hover:bg-neutral-50'
+                  )}
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] font-medium text-black">{runLabel(i, runs.length)}</p>
+                    <p className="mt-0.5 truncate text-xs text-neutral-400">
+                      {new Date(run.createdAt).toLocaleString()} · {run.primaryMetric}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <Badge
+                      variant="outline"
+                      className={cn('text-[10px]', DECISION_STYLES[run.decision] ?? DECISION_STYLES.INCONCLUSIVE)}
+                    >
+                      {run.decision.replace(/_/g, ' ')}
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className={cn('text-[10px]', CONFIDENCE_STYLES[run.confidence as ConfidenceLevel])}
+                    >
+                      {run.confidence}
+                    </Badge>
+                    <ChevronRight
+                      className={cn('h-3.5 w-3.5 text-neutral-300 transition-transform', active && 'rotate-90')}
+                    />
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteRun(run.experimentId);
+                  }}
+                  disabled={isDeleting}
+                  title={isConfirming ? 'Click again to confirm delete' : 'Delete this analysis run'}
+                  className={cn(
+                    'absolute right-2 top-3 rounded-md p-1.5 transition-colors',
+                    isConfirming
+                      ? 'bg-red-50 text-red-600'
+                      : 'text-neutral-300 hover:bg-red-50 hover:text-red-600 group-hover:text-neutral-400'
+                  )}
+                >
+                  {isDeleting ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-3.5 w-3.5" />
+                  )}
+                </button>
+                {isConfirming && !isDeleting && (
+                  <p className="mt-1 text-xs font-medium text-red-600">
+                    Click the trash icon again to permanently delete this run
                   </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-1.5">
-                  <Badge
-                    variant="outline"
-                    className={cn('text-[10px]', DECISION_STYLES[run.decision] ?? DECISION_STYLES.INCONCLUSIVE)}
-                  >
-                    {run.decision.replace(/_/g, ' ')}
-                  </Badge>
-                  <Badge
-                    variant="outline"
-                    className={cn('text-[10px]', CONFIDENCE_STYLES[run.confidence as ConfidenceLevel])}
-                  >
-                    {run.confidence}
-                  </Badge>
-                  <ChevronRight
-                    className={cn('h-3.5 w-3.5 text-neutral-300 transition-transform', active && 'rotate-90')}
-                  />
-                </div>
-              </button>
+                )}
+              </div>
             );
           })}
         </div>
