@@ -518,6 +518,21 @@ export interface Settings {
    */
   model?: string;
   /**
+   * Overrides `StatsThresholds.significance_alpha` (backend default
+   * 0.05, i.e. 95%) for this run only — e.g. 0.95, 0.99. Omitting it
+   * means "use the backend default", same pattern as `model`. Locked
+   * in at analyze-time and baked into the resulting report; there is
+   * no way to change a stored report's confidence level after the
+   * fact — see AnalysisSettings.confidence_level's docstring.
+   */
+  confidenceLevel?: number;
+  /**
+   * Overrides `StatsThresholds.target_power` (backend default 0.80)
+   * for this run's power/MDE calculation only. Same "locked in at
+   * analyze-time, never retroactive" contract as confidenceLevel.
+   */
+  statisticalPower?: number;
+  /**
    * Guardrail metrics EXPLICITLY selected by the user for this analysis
    * (e.g. ['Revenue', 'Bounce Rate']) — chosen from DatasetInfo.
    * availableMetrics, never free-typed. Optional/omittable — every

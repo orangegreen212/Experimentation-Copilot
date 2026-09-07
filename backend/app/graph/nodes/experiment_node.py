@@ -90,19 +90,29 @@ def experiment_node(state: GraphState) -> GraphState:
             log.info("[Experiment] CUPED skipped — %s", vr_result.method)
 
     metric_label = humanize_metric_label(columns.metric_col)
+
+    # Per-run overrides of significance_alpha/target_power (Settings.
+    # confidenceLevel / .statisticalPower) — None means "use
+    # stats_thresholds' fixed default", exactly as before this was
+    # wired up. See AnalysisSettings.confidence_level's docstring for
+    # why this is threaded as an explicit override rather than
+    # mutating the process-global `stats_thresholds`.
+    alpha = 1 - settings.confidence_level if settings.confidence_level is not None else None
+    target_power = settings.statistical_power
+
     if multi_arm:
         arms = {
             str(label): df.loc[df[columns.variant_col] == label, columns.metric_col]
             for label in variant_values
         }
         stat_results = compute_multi_arm_stat_results(
-            arms, columns.metric_type, metric_label, control_label=control_label
+            arms, columns.metric_type, metric_label, control_label=control_label, alpha=alpha
         )
         test_selection = None
     else:
         test_selection = select_test(control_metric, variant_metric, columns.metric_type)
         stat_results = [compute_stat_result(
-            control_metric, variant_metric, columns.metric_type, metric_label, test_selection
+            control_metric, variant_metric, columns.metric_type, metric_label, test_selection, alpha=alpha
         )]
 
     bootstrap_ci_check = None
@@ -143,7 +153,7 @@ def experiment_node(state: GraphState) -> GraphState:
             winner_series = df.loc[df[columns.variant_col].astype(str) == str(winner_arm), columns.metric_col]
         else:
             winner_series = variant_metric
-        power_result = compute_power_analysis(control_metric, winner_series, columns.metric_type)
+        power_result = compute_power_analysis(control_metric, winner_series, columns.metric_type, alpha=alpha, target_power=target_power)
         mde = abs(power_result.minimum_detectable_effect_relative)
         import re
         enriched = []
@@ -162,7 +172,7 @@ def experiment_node(state: GraphState) -> GraphState:
             len(pairwise),
         )
     else:
-        power_result = compute_power_analysis(control_metric, variant_metric, columns.metric_type)
+        power_result = compute_power_analysis(control_metric, variant_metric, columns.metric_type, alpha=alpha, target_power=target_power)
         log.info(
             "[Experiment] %s completed — p=%.4f, significant=%s",
             test_selection.test_type.value,

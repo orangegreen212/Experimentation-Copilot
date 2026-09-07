@@ -30,6 +30,30 @@ class AnalysisSettings(CamelModel):
     model: str = "claude-sonnet"
     cost_usd: float = 0.0
 
+    # Confidence level / statistical power — user-facing overrides of
+    # `StatsThresholds.significance_alpha` / `.target_power`
+    # (app/core/config.py). Deliberately still None-by-default and
+    # threaded through as an explicit per-call override at every
+    # consumer (compute_stat_result / compute_multi_arm_stat_results /
+    # compute_power_analysis already accepted an `alpha`/`target_power`
+    # override before this — only this schema + the graph wiring in
+    # experiment_node.py/guardrail_node.py are new) rather than mutating
+    # `stats_thresholds` itself, for two reasons:
+    #   1. `stats_thresholds` is process-global — mutating it would leak
+    #      one request's confidence level into every concurrent request.
+    #   2. Locked in at `/analyze` time and baked into the resulting
+    #      ExperimentReport, exactly like `cuped`/`bootstrap`/`model`
+    #      already are — there is deliberately no endpoint that
+    #      recomputes significance on an already-stored report with a
+    #      different confidence level after the fact. Changing your mind
+    #      about the confidence level means running a new analysis, not
+    #      editing history.
+    # Bounded to the range a legitimate analysis would use — not 0-1 —
+    # so a typo (e.g. 5 meant as "5%") fails fast as a validation error
+    # instead of silently producing a nonsensical alpha.
+    confidence_level: float | None = Field(default=None, ge=0.5, le=0.999)
+    statistical_power: float | None = Field(default=None, ge=0.5, le=0.999)
+
     # Guardrail metrics EXPLICITLY selected by the user for this
     # analysis (e.g. ["Revenue", "Bounce Rate"]) — structured data,
     # never parsed out of free-text `prompt`. Optional and purely

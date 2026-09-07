@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Cpu, Wand2 } from 'lucide-react';
+import { Cpu, Wand2, Target, Gauge } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
@@ -90,6 +90,63 @@ export function ExperimentConfig({ settings, onChange }: ExperimentConfigProps) 
           checked={settings.bootstrap}
           onChange={(v) => update({ bootstrap: v })}
         />
+        <div className="h-px bg-black/10" />
+
+        {/* Confidence level / statistical power — locked in for this
+            run only (same contract as CUPED/bootstrap/model above);
+            omitting either falls back to the backend's fixed default
+            (95% / 80%) rather than sending an unvalidated value. */}
+        <div className="flex items-start justify-between gap-4 py-3.5">
+          <div className="min-w-0">
+            <p className="flex items-center gap-1.5 text-[13px] font-medium text-black">
+              <Target className="h-3.5 w-3.5" />
+              Confidence Level
+            </p>
+            <p className="text-xs text-neutral-400">
+              Significance threshold for this run&apos;s hypothesis test and guardrails.
+            </p>
+          </div>
+          <Select
+            value={settings.confidenceLevel != null ? String(settings.confidenceLevel) : '__default__'}
+            onValueChange={(v) => update({ confidenceLevel: v === '__default__' ? undefined : Number(v) })}
+          >
+            <SelectTrigger className="h-8 w-[140px] shrink-0 border-black/15 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__default__">Default (95%)</SelectItem>
+              <SelectItem value="0.90">90%</SelectItem>
+              <SelectItem value="0.95">95%</SelectItem>
+              <SelectItem value="0.99">99%</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="h-px bg-black/10" />
+        <div className="flex items-start justify-between gap-4 py-3.5">
+          <div className="min-w-0">
+            <p className="flex items-center gap-1.5 text-[13px] font-medium text-black">
+              <Gauge className="h-3.5 w-3.5" />
+              Statistical Power
+            </p>
+            <p className="text-xs text-neutral-400">
+              Target power used for this run&apos;s MDE / required-sample-size calculation.
+            </p>
+          </div>
+          <Select
+            value={settings.statisticalPower != null ? String(settings.statisticalPower) : '__default__'}
+            onValueChange={(v) => update({ statisticalPower: v === '__default__' ? undefined : Number(v) })}
+          >
+            <SelectTrigger className="h-8 w-[140px] shrink-0 border-black/15 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__default__">Default (80%)</SelectItem>
+              <SelectItem value="0.80">80%</SelectItem>
+              <SelectItem value="0.90">90%</SelectItem>
+              <SelectItem value="0.95">95%</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <div className="h-px bg-black/10" />
 
         {/* Model selector — server-curated list only (GET /system/models).

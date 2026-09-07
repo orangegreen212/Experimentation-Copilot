@@ -137,12 +137,14 @@ def guardrail_node(state: GraphState) -> GraphState:
             control_series = df.loc[control_mask, guardrail_col]
             variant_series = df.loc[variant_mask, guardrail_col]
             test_selection = select_test(control_series, variant_series, guardrail_type)
+            alpha = 1 - settings.confidence_level if settings.confidence_level is not None else None
             stat_result = compute_stat_result(
                 control_series,
                 variant_series,
                 guardrail_type,
                 humanize_metric_label(guardrail_col),
                 test_selection,
+                alpha=alpha,
             )
             # Directionality (doc3 §6/§7): a guardrail's "harmful" direction
             # depends on the metric — an increase in Bounce Rate is bad, an

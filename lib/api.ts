@@ -241,6 +241,12 @@ export async function analyzeExperiment({
         // (rather than sent as undefined) keeps the request body
         // identical to before this field existed for the default case.
         ...(settings.model ? { model: settings.model } : {}),
+        // Locked in for this run only — see Settings.confidenceLevel /
+        // .statisticalPower's docstrings in lib/types.ts. Omitted
+        // (rather than sent as undefined) falls back to the backend's
+        // fixed default, same pattern as `model` above.
+        ...(settings.confidenceLevel != null ? { confidenceLevel: settings.confidenceLevel } : {}),
+        ...(settings.statisticalPower != null ? { statisticalPower: settings.statisticalPower } : {}),
         // Guardrail root-cause fix — only sent when the analyst actually
         // selected at least one guardrail metric; omitted (rather than
         // sent as []) keeps the request body identical to before this
@@ -718,6 +724,8 @@ export async function analyzeExperimentDefinition({
         cuped: settings.cuped,
         bootstrap: settings.bootstrap,
         ...(settings.model ? { model: settings.model } : {}),
+        ...(settings.confidenceLevel != null ? { confidenceLevel: settings.confidenceLevel } : {}),
+        ...(settings.statisticalPower != null ? { statisticalPower: settings.statisticalPower } : {}),
         ...(settings.guardrailMetrics && settings.guardrailMetrics.length > 0
           ? { guardrailMetrics: settings.guardrailMetrics }
           : {}),
