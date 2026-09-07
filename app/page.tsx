@@ -1,12 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Sidebar, type View } from '@/components/sidebar';
 import { WorkspaceView } from '@/components/workspace-view';
 import { HistoryView } from '@/components/history-view';
 import { DatasetsView } from '@/components/datasets-view';
 import { ExperimentConfig } from '@/components/experiment-config';
 import { ExperimentLibrary } from '@/components/experiment-library';
+import { SettingsView } from '@/components/settings-view';
+import { MetricsView } from '@/components/metrics-view';
+import { getWorkspaceSettings } from '@/lib/workspace-settings';
 import type { Settings } from '@/lib/types';
 
 const VIEW_COPY: Record<View, { title: string; subtitle: string }> = {
@@ -26,8 +29,11 @@ const VIEW_COPY: Record<View, { title: string; subtitle: string }> = {
     title: 'Datasets',
     subtitle: 'Every dataset you\u2019ve worked with, grouped from your experiment history',
   },
-  metrics: { title: 'Metrics', subtitle: 'Coming soon' },
-  settings: { title: 'Settings', subtitle: 'Coming soon' },
+  metrics: { title: 'Metrics', subtitle: 'A reference guide to common experimentation metrics' },
+  settings: {
+    title: 'Settings',
+    subtitle: 'Configure default analysis behavior for your experiments',
+  },
 };
 
 export default function Home() {
@@ -42,6 +48,22 @@ export default function Home() {
   // inside WorkspaceView, so it's not reset every time the user loads a
   // new dataset — it persists across dataset switches within a session.
   const [settings, setSettings] = useState<Settings>({ cuped: false, bootstrap: false });
+
+  // Seed the very first session's settings from the user's saved
+  // workspace defaults (Settings screen / lib/workspace-settings.ts).
+  // Runs once, on mount, before the user has had a chance to touch
+  // anything in ExperimentConfig — so merging saved defaults on top of
+  // the hardcoded fallback here can never clobber a real user choice.
+  useEffect(() => {
+    getWorkspaceSettings()
+      .then((saved) => {
+        if (saved) setSettings((prev) => ({ ...prev, ...saved }));
+      })
+      .catch(() => {
+        // No saved defaults yet (or not signed in) — the hardcoded
+        // fallback above is exactly the app's pre-existing behavior.
+      });
+  }, []);
 
   const handleSessionSaved = () => {
     setHistoryVersion((v) => v + 1);
@@ -94,6 +116,8 @@ export default function Home() {
           {view === 'datasets' && (
             <DatasetsView refreshKey={historyVersion} onViewExperiments={goToExperiment} />
           )}
+          {view === 'metrics' && <MetricsView />}
+          {view === 'settings' && <SettingsView />}
         </div>
       </main>
     </div>

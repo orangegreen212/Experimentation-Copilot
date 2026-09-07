@@ -35,8 +35,8 @@ const NAV: NavItem[] = [
   { id: 'overview', label: 'New Analysis', icon: FlaskConical },
   { id: 'experiments', label: 'Experiments', icon: History },
   { id: 'datasets', label: 'Datasets', icon: Database },
-  { id: 'metrics', label: 'Metrics', icon: BarChart3, comingSoon: true },
-  { id: 'settings', label: 'Settings', icon: Settings, comingSoon: true },
+  { id: 'metrics', label: 'Metrics', icon: BarChart3 },
+  { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
 function Brand() {
