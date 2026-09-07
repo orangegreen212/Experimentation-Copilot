@@ -60,12 +60,28 @@ export function ExperimentConfig({ settings, onChange }: ExperimentConfigProps) 
       .catch(() => setModelsError(true));
   }, []);
 
+  // Free-only: the backend's curated list mixes paid (reliable) and
+  // free (OpenRouter ":free" suffix, may queue/fail under load) models
+  // — see config.py's available_llm_models comment on why paid ones
+  // are listed at all. This UI is scoped to only ever offer/send a
+  // free model, so paid entries (including the backend's own default,
+  // which is paid) are filtered out entirely rather than merely
+  // reordered.
+  const freeModels = models.filter((m) => m.id.endsWith(':free'));
+
   const update = (patch: Partial<Settings>) => onChange({ ...settings, ...patch });
 
-  // Empty string sentinel = "use the backend default" (settings.model
-  // left undefined) — the Radix Select needs a non-empty value for
-  // every item, so the default option gets its own explicit value.
-  const selectValue = settings.model ?? '__default__';
+  // With no "use the backend default" option left (the default is
+  // paid), a free model must be explicitly selected as soon as the
+  // list loads — otherwise an unset `settings.model` would fall
+  // through to the backend's paid default at analyze-time, silently
+  // defeating the whole point of this filter.
+  useEffect(() => {
+    if (!settings.model && freeModels.length > 0) {
+      update({ model: freeModels[0].id });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [freeModels.length]);
 
   return (
     <Card className="border-black/10 shadow-none">
@@ -95,7 +111,13 @@ export function ExperimentConfig({ settings, onChange }: ExperimentConfigProps) 
         {/* Confidence level / statistical power — locked in for this
             run only (same contract as CUPED/bootstrap/model above);
             omitting either falls back to the backend's fixed default
-            (95% / 80%) rather than sending an unvalidated value. */}
+            (95% / 80%) rather than sending an unvalidated value.
+
+            Values round-trip through whole-percent strings ("90",
+            "95"), never `String(0.90)` — JS stringifies 0.90 as "0.9",
+            which silently failed to match a hardcoded "0.90" SelectItem
+            value and made the picker look like it wasn't registering
+            selections at all. */}
         <div className="flex items-start justify-between gap-4 py-3.5">
           <div className="min-w-0">
             <p className="flex items-center gap-1.5 text-[13px] font-medium text-black">
@@ -107,17 +129,17 @@ export function ExperimentConfig({ settings, onChange }: ExperimentConfigProps) 
             </p>
           </div>
           <Select
-            value={settings.confidenceLevel != null ? String(settings.confidenceLevel) : '__default__'}
-            onValueChange={(v) => update({ confidenceLevel: v === '__default__' ? undefined : Number(v) })}
+            value={settings.confidenceLevel != null ? String(Math.round(settings.confidenceLevel * 100)) : '__default__'}
+            onValueChange={(v) => update({ confidenceLevel: v === '__default__' ? undefined : Number(v) / 100 })}
           >
             <SelectTrigger className="h-8 w-[140px] shrink-0 border-black/15 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__default__">Default (95%)</SelectItem>
-              <SelectItem value="0.90">90%</SelectItem>
-              <SelectItem value="0.95">95%</SelectItem>
-              <SelectItem value="0.99">99%</SelectItem>
+              <SelectItem value="90">90%</SelectItem>
+              <SelectItem value="95">95%</SelectItem>
+              <SelectItem value="99">99%</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -133,67 +155,64 @@ export function ExperimentConfig({ settings, onChange }: ExperimentConfigProps) 
             </p>
           </div>
           <Select
-            value={settings.statisticalPower != null ? String(settings.statisticalPower) : '__default__'}
-            onValueChange={(v) => update({ statisticalPower: v === '__default__' ? undefined : Number(v) })}
+            value={settings.statisticalPower != null ? String(Math.round(settings.statisticalPower * 100)) : '__default__'}
+            onValueChange={(v) => update({ statisticalPower: v === '__default__' ? undefined : Number(v) / 100 })}
           >
             <SelectTrigger className="h-8 w-[140px] shrink-0 border-black/15 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__default__">Default (80%)</SelectItem>
-              <SelectItem value="0.80">80%</SelectItem>
-              <SelectItem value="0.90">90%</SelectItem>
-              <SelectItem value="0.95">95%</SelectItem>
+              <SelectItem value="80">80%</SelectItem>
+              <SelectItem value="90">90%</SelectItem>
+              <SelectItem value="95">95%</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div className="h-px bg-black/10" />
 
-        {/* Model selector — server-curated list only (GET /system/models).
-            Applies to this run's report generation and its follow-up chat. */}
+        {/* Model selector — server-curated list only (GET /system/models),
+            filtered to free (":free") models only per product decision:
+            this Copilot only ever pays for the deterministic stats
+            engine's compute, never the LLM interpretation layer. */}
         <div className="flex items-start justify-between gap-4 py-3.5">
           <div className="min-w-0">
             <p className="flex items-center gap-1.5 text-[13px] font-medium text-black">
               <Cpu className="h-3.5 w-3.5" />
               LLM Model
+              <Badge variant="outline" className="border-black/10 text-[10px] font-normal text-neutral-500">
+                Free models only
+              </Badge>
             </p>
             <p className="text-xs text-neutral-400">
               {modelsError
-                ? 'Could not load the model list — using the backend default.'
-                : 'Pick a free OpenRouter model if the default is rate-limited or unavailable.'}
+                ? 'Could not load the model list.'
+                : 'Free OpenRouter models may queue or fail to respond under load — switch here if that happens.'}
             </p>
           </div>
           <div className="shrink-0">
-            {modelsError && infoError && (
+            {modelsError && (
               <span className="text-xs text-neutral-400">Unavailable</span>
             )}
-            {!modelsError && models.length > 0 ? (
+            {!modelsError && freeModels.length > 0 ? (
               <Select
-                value={selectValue}
-                onValueChange={(v) => update({ model: v === '__default__' ? undefined : v })}
+                value={settings.model && freeModels.some((m) => m.id === settings.model) ? settings.model : freeModels[0].id}
+                onValueChange={(v) => update({ model: v })}
               >
                 <SelectTrigger className="h-8 w-[260px] border-black/15 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__default__">
-                    Backend default{defaultModel ? ` (${defaultModel})` : ''}
-                  </SelectItem>
-                  {models
-                    .filter((m) => m.id !== defaultModel)
-                    .map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
-                        {m.label}
-                      </SelectItem>
-                    ))}
+                  {freeModels.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             ) : (
-              !modelsError &&
-              systemInfo && (
-                <Badge variant="outline" className="border-black/10 text-neutral-600">
-                  {systemInfo.llmModel}
-                </Badge>
+              !modelsError && (
+                <span className="text-xs text-neutral-400">No free models configured</span>
               )
             )}
           </div>
