@@ -344,16 +344,34 @@ def _compute_mann_whitney_result(
     as below (percentile bootstrap over resampled medians), just
     executed one draw at a time instead of as batched numpy ops — on a
     dataset with several small segments this dominated the
-    `segmentation` pipeline stage's wall time. Below draws all
-    `bootstrap_iterations` resamples' worth of indices in two vectorized
-    `rng.integers` calls and takes the median along axis=1 in one shot,
-    which is the same math, just not re-entering the Python interpreter
-    2000 times. Uses a fresh `default_rng(seed)` exactly as before, so
-    this is still fully deterministic given the fixed seed — only the
-    RNG call pattern (batched vs. one-at-a-time) changed, so the exact
-    stream of numbers drawn (and therefore the exact CI bounds) differs
-    slightly from the old loop, but it's the same estimator with the
-    same iteration count on the same data.
+    `segmentation` pipeline stage's wall time.
+
+    MEMORY (found via production OOM on Render's 512MB instances):
+    drawing all `bootstrap_iterations` resamples' worth of indices in a
+    single `rng.integers(size=(bootstrap_iterations, n))` call, as a
+    first fix attempt did, is O(bootstrap_iterations * n) memory for
+    the index array ALONE, then another O(bootstrap_iterations * n) for
+    the fancy-indexed value array taking the median. For an arm with
+    n=20,000 and bootstrap_iterations=2000 that's already
+    2000*20000*8 bytes = 320MB per array, times two arrays (control +
+    variant) and two allocations each (indices + gathered values) —
+    over a gigabyte in a SINGLE call, on a dataset that can otherwise
+    load in ~30MB. With 3+ variants, segmentation calls this dozens of
+    times per analysis run, so it only takes one large-enough segment
+    to OOM the whole process mid-`/analyze`, well after dataset loading
+    itself had already been fixed to be cheap.
+
+    Below draws resamples in fixed-size BATCHES instead of all at once,
+    bounding peak memory to a small constant (~`_BOOTSTRAP_BATCH_TARGET_BYTES`)
+    regardless of `n` or `bootstrap_iterations`, at the cost of a Python
+    loop over batches (still far fewer iterations than the original
+    one-draw-at-a-time loop — batch count is bootstrap_iterations /
+    batch_size, not bootstrap_iterations). Still a fresh
+    `default_rng(seed)` exactly as before, so this remains fully
+    deterministic given the fixed seed — only the batching changes,
+    which does change the exact stream of numbers drawn (and therefore
+    the exact CI bounds) vs. either prior version, but it's the same
+    estimator with the same iteration count on the same data.
     """
     u_stat, p_value = scipy_stats.mannwhitneyu(variant, control, alternative="two-sided")
 
@@ -364,10 +382,22 @@ def _compute_mann_whitney_result(
     control_arr, variant_arr = control.to_numpy(), variant.to_numpy()
     n_control, n_variant = len(control_arr), len(variant_arr)
 
-    control_idx = rng.integers(0, n_control, size=(bootstrap_iterations, n_control))
-    variant_idx = rng.integers(0, n_variant, size=(bootstrap_iterations, n_variant))
-    boot_c_medians = np.median(control_arr[control_idx], axis=1)
-    boot_v_medians = np.median(variant_arr[variant_idx], axis=1)
+    # Bound each batch's two (batch_size, n) int64 index arrays to
+    # roughly this many bytes combined, so peak memory stays flat no
+    # matter how large n or bootstrap_iterations is.
+    _BOOTSTRAP_BATCH_TARGET_BYTES = 20_000_000  # ~20MB
+    max_n = max(n_control, n_variant, 1)
+    batch_size = max(1, min(bootstrap_iterations, _BOOTSTRAP_BATCH_TARGET_BYTES // (8 * max_n)))
+
+    boot_c_medians = np.empty(bootstrap_iterations)
+    boot_v_medians = np.empty(bootstrap_iterations)
+    for start in range(0, bootstrap_iterations, batch_size):
+        end = min(start + batch_size, bootstrap_iterations)
+        cur = end - start
+        control_idx = rng.integers(0, n_control, size=(cur, n_control))
+        variant_idx = rng.integers(0, n_variant, size=(cur, n_variant))
+        boot_c_medians[start:end] = np.median(control_arr[control_idx], axis=1)
+        boot_v_medians[start:end] = np.median(variant_arr[variant_idx], axis=1)
     boot_diffs = boot_v_medians - boot_c_medians
 
     ci_lower = np.percentile(boot_diffs, 100 * alpha / 2)
