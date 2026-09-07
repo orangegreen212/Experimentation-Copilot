@@ -32,8 +32,13 @@ export async function getWorkspaceSettings(): Promise<WorkspaceDefaults | null> 
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data, error } = await supabase
-    .from(TABLE)
+  // `createClient()` isn't instantiated with a generated `Database`
+  // type (see lib/supabase/client.ts), so `.from()` has no schema to
+  // look up `user_workspace_settings` against and infers `never` for
+  // the row shape. Casting the builder here (not the client itself)
+  // keeps that untyped-ness local to this one table instead of
+  // spreading `any` through every other Supabase call in the app.
+  const { data, error } = await (supabase.from(TABLE) as any)
     .select('settings')
     .eq('user_id', user.id)
     .maybeSingle();
@@ -65,8 +70,7 @@ export async function saveWorkspaceSettings(defaults: WorkspaceDefaults): Promis
     throw new Error('You must be signed in to save workspace settings.');
   }
 
-  const { error } = await supabase
-    .from(TABLE)
+  const { error } = await (supabase.from(TABLE) as any)
     .upsert(
       { user_id: user.id, settings: defaults, updated_at: new Date().toISOString() },
       { onConflict: 'user_id' }
