@@ -80,15 +80,15 @@ export function SettingsView() {
   };
 
   if (loading) {
-    return <p className="text-xs text-neutral-400">Loading settings…</p>;
+    return <p className="text-xs text-muted-foreground">Loading settings…</p>;
   }
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <Card className="border-black/10 shadow-none">
+      <Card className="border-border shadow-none">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Wand2 className="h-4 w-4 text-black" />
+            <Wand2 className="h-4 w-4 text-foreground" />
             <CardTitle className="text-[15px] tracking-tight">Settings</CardTitle>
           </div>
           <CardDescription>Configure default analysis behavior for your experiments.</CardDescription>
@@ -97,14 +97,14 @@ export function SettingsView() {
           {/* AI Model */}
           <div className="flex items-start justify-between gap-4 py-3.5">
             <div className="min-w-0">
-              <p className="flex items-center gap-1.5 text-[13px] font-medium text-black">
+              <p className="flex items-center gap-1.5 text-[13px] font-medium text-foreground">
                 <Cpu className="h-3.5 w-3.5" />
                 AI Model
-                <Badge variant="outline" className="border-black/10 text-[10px] font-normal text-neutral-500">
+                <Badge variant="outline" className="border-border text-[10px] font-normal text-muted-foreground">
                   Free models only
                 </Badge>
               </p>
-              <p className="text-xs text-neutral-400">
+              <p className="text-xs text-muted-foreground">
                 {modelsError ? 'Could not load the model list.' : 'Used unless overridden for a specific run.'}
               </p>
             </div>
@@ -114,7 +114,7 @@ export function SettingsView() {
                   value={defaults.model && freeModels.some((m) => m.id === defaults.model) ? defaults.model : freeModels[0].id}
                   onValueChange={(v) => update({ model: v })}
                 >
-                  <SelectTrigger className="h-8 w-[260px] border-black/15 text-xs">
+                  <SelectTrigger className="h-8 w-[260px] border-border-strong text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -126,26 +126,26 @@ export function SettingsView() {
                   </SelectContent>
                 </Select>
               ) : (
-                <span className="text-xs text-neutral-400">Unavailable</span>
+                <span className="text-xs text-muted-foreground">Unavailable</span>
               )}
             </div>
           </div>
-          <div className="h-px bg-black/10" />
+          <div className="h-px bg-border" />
 
           {/* Statistical defaults */}
           <div className="flex items-start justify-between gap-4 py-3.5">
             <div className="min-w-0">
-              <p className="flex items-center gap-1.5 text-[13px] font-medium text-black">
+              <p className="flex items-center gap-1.5 text-[13px] font-medium text-foreground">
                 <Target className="h-3.5 w-3.5" />
                 Confidence Level
               </p>
-              <p className="text-xs text-neutral-400">Default significance threshold for new experiments.</p>
+              <p className="text-xs text-muted-foreground">Default significance threshold for new experiments.</p>
             </div>
             <Select
               value={defaults.confidenceLevel != null ? String(Math.round(defaults.confidenceLevel * 100)) : '__default__'}
               onValueChange={(v) => update({ confidenceLevel: v === '__default__' ? undefined : Number(v) / 100 })}
             >
-              <SelectTrigger className="h-8 w-[140px] shrink-0 border-black/15 text-xs">
+              <SelectTrigger className="h-8 w-[140px] shrink-0 border-border-strong text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -156,21 +156,21 @@ export function SettingsView() {
               </SelectContent>
             </Select>
           </div>
-          <div className="h-px bg-black/10" />
+          <div className="h-px bg-border" />
 
           <div className="flex items-start justify-between gap-4 py-3.5">
             <div className="min-w-0">
-              <p className="flex items-center gap-1.5 text-[13px] font-medium text-black">
+              <p className="flex items-center gap-1.5 text-[13px] font-medium text-foreground">
                 <Gauge className="h-3.5 w-3.5" />
                 Statistical Power
               </p>
-              <p className="text-xs text-neutral-400">Default target power for new experiments.</p>
+              <p className="text-xs text-muted-foreground">Default target power for new experiments.</p>
             </div>
             <Select
               value={defaults.statisticalPower != null ? String(Math.round(defaults.statisticalPower * 100)) : '__default__'}
               onValueChange={(v) => update({ statisticalPower: v === '__default__' ? undefined : Number(v) / 100 })}
             >
-              <SelectTrigger className="h-8 w-[140px] shrink-0 border-black/15 text-xs">
+              <SelectTrigger className="h-8 w-[140px] shrink-0 border-border-strong text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -181,7 +181,7 @@ export function SettingsView() {
               </SelectContent>
             </Select>
           </div>
-          <div className="h-px bg-black/10" />
+          <div className="h-px bg-border" />
 
           {/* Data processing */}
           <ToggleRow
@@ -190,7 +190,7 @@ export function SettingsView() {
             checked={defaults.cuped}
             onChange={(v) => update({ cuped: v })}
           />
-          <div className="h-px bg-black/10" />
+          <div className="h-px bg-border" />
           <ToggleRow
             label="Bootstrap Resampling"
             description="Non-parametric confidence intervals via 10,000 bootstrap iterations, by default."
@@ -205,15 +205,15 @@ export function SettingsView() {
           {saving ? 'Saving…' : 'Save defaults'}
         </Button>
         {savedAt && (
-          <span className="flex items-center gap-1 text-xs text-emerald-600">
+          <span className="flex items-center gap-1 text-xs text-success">
             <Check className="h-3.5 w-3.5" /> Saved
           </span>
         )}
-        {saveError && <span className="text-xs text-red-600">{saveError}</span>}
-        {loadError && <span className="text-xs text-neutral-400">Could not load previously saved defaults.</span>}
+        {saveError && <span className="text-xs text-destructive">{saveError}</span>}
+        {loadError && <span className="text-xs text-muted-foreground">Could not load previously saved defaults.</span>}
       </div>
 
-      <p className="text-xs text-neutral-400">
+      <p className="text-xs text-muted-foreground">
         These settings are used as defaults when creating a new experiment. You can still change any of
         them for a single run in Experiment Configuration on the Overview screen.
       </p>
@@ -235,8 +235,8 @@ function ToggleRow({
   return (
     <div className="flex items-start justify-between gap-4 py-3.5">
       <div className="min-w-0">
-        <p className="text-[13px] font-medium text-black">{label}</p>
-        <p className="text-xs text-neutral-400">{description}</p>
+        <p className="text-[13px] font-medium text-foreground">{label}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
       </div>
       <Switch checked={checked} onCheckedChange={onChange} className="mt-1 shrink-0" />
     </div>

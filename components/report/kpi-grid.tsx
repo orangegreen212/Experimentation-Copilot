@@ -19,7 +19,7 @@ export function KpiGrid({ report }: { report: ExperimentReport }) {
   const isRejected = verdict === 'NOT_SUPPORTED';
 
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
       <KpiTile
         icon={<FlaskConical className="h-4 w-4" />}
         label="Hypothesis"
@@ -28,7 +28,7 @@ export function KpiGrid({ report }: { report: ExperimentReport }) {
       />
       <KpiTile
         icon={<Target className="h-4 w-4" />}
-        label="Effect Size"
+        label="Effect size"
         value={primary ? primaryEffectParts(primary).primary : 'N/A'}
         tone={primary?.significant ? 'go' : 'neutral'}
       />

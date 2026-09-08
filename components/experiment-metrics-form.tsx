@@ -117,10 +117,10 @@ export function ExperimentMetricsForm({ definition, onSaved }: ExperimentMetrics
   };
 
   return (
-    <Card className="border-black/10 shadow-none">
+    <Card className="border-border shadow-none">
       <CardHeader className="space-y-0">
         <div className="flex items-center gap-2">
-          <Target className="h-4 w-4 text-black" />
+          <Target className="h-4 w-4 text-foreground" />
           <div>
             <CardTitle className="text-[15px] tracking-tight">Metrics</CardTitle>
             <CardDescription>At most one metric may be marked Primary.</CardDescription>
@@ -137,16 +137,16 @@ export function ExperimentMetricsForm({ definition, onSaved }: ExperimentMetrics
             <div key={role} className="space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5">
-                  <Icon className="h-3.5 w-3.5 text-neutral-400" />
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
+                  <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-[11px] font-medium text-muted-foreground">
                     {title}
                   </span>
-                  <span className="text-xs text-neutral-400">— {description}</span>
+                  <span className="text-xs text-muted-foreground">— {description}</span>
                 </div>
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-7 gap-1 px-2 text-xs text-neutral-500"
+                  className="h-7 gap-1 px-2 text-xs text-muted-foreground"
                   onClick={() => addMetric(role)}
                 >
                   <Plus className="h-3.5 w-3.5" />
@@ -155,7 +155,7 @@ export function ExperimentMetricsForm({ definition, onSaved }: ExperimentMetrics
               </div>
 
               {roleMetrics.length === 0 && (
-                <div className="rounded-md border border-dashed border-black/15 bg-neutral-50/60 py-4 text-center text-xs text-neutral-400">
+                <div className="rounded-md border border-dashed border-border-strong bg-secondary/60 py-4 text-center text-xs text-muted-foreground">
                   No {title.toLowerCase()} metrics yet.
                 </div>
               )}
@@ -166,26 +166,26 @@ export function ExperimentMetricsForm({ definition, onSaved }: ExperimentMetrics
                     key={i}
                     className={cn(
                       'space-y-3 rounded-lg border p-3',
-                      role === 'primary' ? 'border-indigo-200 bg-indigo-50/40' : 'border-black/10'
+                      role === 'primary' ? 'border-primary/25 bg-accent/40' : 'border-border'
                     )}
                   >
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-[2fr_1fr_auto]">
                       <div>
-                        <Label className="text-xs font-medium text-neutral-500">Name</Label>
+                        <Label className="text-xs font-medium text-muted-foreground">Name</Label>
                         <Input
                           value={m.name}
                           onChange={(e) => updateMetric(i, { name: e.target.value })}
                           placeholder="e.g. Signup Conversion"
-                          className="mt-1 h-8 border-black/10 text-sm placeholder:text-neutral-400"
+                          className="mt-1 h-8 border-border text-sm placeholder:text-muted-foreground"
                         />
                       </div>
                       <div>
-                        <Label className="text-xs font-medium text-neutral-500">Type</Label>
+                        <Label className="text-xs font-medium text-muted-foreground">Type</Label>
                         <Select
                           value={m.type}
                           onValueChange={(v) => updateMetric(i, { type: v as PlanningMetricType })}
                         >
-                          <SelectTrigger className="mt-1 h-8 border-black/10 text-xs">
+                          <SelectTrigger className="mt-1 h-8 border-border text-xs">
                             <SelectValue>{METRIC_TYPE_LABELS[m.type]}</SelectValue>
                           </SelectTrigger>
                           <SelectContent>
@@ -202,7 +202,7 @@ export function ExperimentMetricsForm({ definition, onSaved }: ExperimentMetrics
                           type="button"
                           onClick={() => removeMetric(i)}
                           title="Remove metric"
-                          className="rounded-md p-1.5 text-neutral-300 transition-colors hover:bg-red-50 hover:text-red-600"
+                          className="rounded-md p-1.5 text-muted-foreground/50 transition-colors hover:bg-destructive/[0.08] hover:text-destructive"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -211,8 +211,8 @@ export function ExperimentMetricsForm({ definition, onSaved }: ExperimentMetrics
 
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <div>
-                        <Label className="text-xs font-medium text-neutral-500">
-                          Description <span className="font-normal text-neutral-400">(optional)</span>
+                        <Label className="text-xs font-medium text-muted-foreground">
+                          Description <span className="font-normal text-muted-foreground">(optional)</span>
                         </Label>
                         <Input
                           value={m.description ?? ''}
@@ -220,12 +220,12 @@ export function ExperimentMetricsForm({ definition, onSaved }: ExperimentMetrics
                             updateMetric(i, { description: e.target.value === '' ? null : e.target.value })
                           }
                           placeholder="What this measures"
-                          className="mt-1 h-8 border-black/10 text-sm placeholder:text-neutral-400"
+                          className="mt-1 h-8 border-border text-sm placeholder:text-muted-foreground"
                         />
                       </div>
                       <div>
-                        <Label className="text-xs font-medium text-neutral-500">
-                          Definition <span className="font-normal text-neutral-400">(optional)</span>
+                        <Label className="text-xs font-medium text-muted-foreground">
+                          Definition <span className="font-normal text-muted-foreground">(optional)</span>
                         </Label>
                         <Input
                           value={m.fieldDefinition ?? ''}
@@ -233,7 +233,7 @@ export function ExperimentMetricsForm({ definition, onSaved }: ExperimentMetrics
                             updateMetric(i, { fieldDefinition: e.target.value === '' ? null : e.target.value })
                           }
                           placeholder="e.g. signup_event"
-                          className="mt-1 h-8 border-black/10 text-sm placeholder:text-neutral-400"
+                          className="mt-1 h-8 border-border text-sm placeholder:text-muted-foreground"
                         />
                       </div>
                     </div>
@@ -245,16 +245,16 @@ export function ExperimentMetricsForm({ definition, onSaved }: ExperimentMetrics
         })}
 
         {primaryCount > 1 && (
-          <div className="flex items-center gap-2 border-t border-black/5 pt-3 text-xs text-red-600">
+          <div className="flex items-center gap-2 border-t border-border pt-3 text-xs text-destructive">
             <AlertCircle className="h-3.5 w-3.5" />
             At most one metric may be marked Primary (currently {primaryCount}).
           </div>
         )}
 
         <div className="flex items-center justify-end gap-2 pt-1">
-          {saveError && <p className="mr-auto text-xs text-red-600">{saveError}</p>}
+          {saveError && <p className="mr-auto text-xs text-destructive">{saveError}</p>}
           {dirty && !saving && (
-            <Button size="sm" variant="ghost" onClick={handleDiscard} className="text-neutral-500">
+            <Button size="sm" variant="ghost" onClick={handleDiscard} className="text-muted-foreground">
               Discard changes
             </Button>
           )}
@@ -262,7 +262,7 @@ export function ExperimentMetricsForm({ definition, onSaved }: ExperimentMetrics
             size="sm"
             onClick={handleSave}
             disabled={!dirty || saving || invalid}
-            className="gap-1.5 bg-indigo-600 text-white hover:bg-indigo-700"
+            className="gap-1.5 bg-primary text-white hover:bg-primary/90"
           >
             {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             Save metrics

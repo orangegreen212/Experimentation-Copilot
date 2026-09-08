@@ -33,7 +33,7 @@ export function SummaryCards({ report }: { report: ExperimentReport }) {
       <div className="flex flex-wrap items-center gap-2">
         {rm && (
           <Badge tone="neutral">
-            {rm.userCount.toLocaleString()} users exposed
+            <span className="font-data">{rm.userCount.toLocaleString()}</span> users exposed
           </Badge>
         )}
         {primary && (
@@ -48,79 +48,82 @@ export function SummaryCards({ report }: { report: ExperimentReport }) {
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
         {/* Primary Metric */}
-        <div className="rounded-xl border border-black/10 bg-white p-4">
-          <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+        <div className="rounded-lg border border-border bg-surface p-3.5">
+          <div className="flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground">
             <Target className="h-3.5 w-3.5" />
-            Primary Metric
+            Primary metric
           </div>
-          <p className="mt-1.5 truncate text-[15px] font-semibold text-black">
+          <p className="mt-1.5 truncate text-[15px] font-semibold text-foreground">
             {primary?.metric ?? report.hypothesis?.primaryMetric ?? 'N/A'}
           </p>
           {report.hypothesis?.expectedEffectRelative != null && (
-            <p className="mt-0.5 text-xs text-neutral-400">
+            <p className="mt-0.5 text-[12px] text-muted-foreground">
               Hypothesized to {report.hypothesis.expectedDirection.replace('_', ' ')} by{' '}
-              {Math.abs(report.hypothesis.expectedEffectRelative * 100).toFixed(1)}% (relative)
+              <span className="font-data">
+                {Math.abs(report.hypothesis.expectedEffectRelative * 100).toFixed(1)}%
+              </span>{' '}
+              (relative)
             </p>
           )}
         </div>
 
         {/* Variants */}
-        <div className="rounded-xl border border-black/10 bg-white p-4">
-          <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+        <div className="rounded-lg border border-border bg-surface p-3.5">
+          <div className="flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground">
             <Users className="h-3.5 w-3.5" />
             Variants
           </div>
           {primary ? (
             <div className="mt-1.5 flex items-end gap-3">
               <div>
-                <p className="text-[15px] font-semibold text-black">{primary.control}</p>
-                <p className="flex items-center gap-1 text-[11px] text-neutral-400">
-                  <span className="h-1.5 w-1.5 rounded-full bg-neutral-400" />
+                <p className="font-data text-[15px] font-semibold text-foreground">{primary.control}</p>
+                <p className="flex items-center gap-1 text-[12px] text-muted-foreground">
+                  <span className="h-1.5 w-1.5 rounded-full bg-border-strong" />
                   control
                 </p>
               </div>
               <div>
-                <p className="text-[15px] font-semibold text-black">{primary.variant}</p>
-                <p className="flex items-center gap-1 text-[11px] text-neutral-400">
-                  <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                <p className="font-data text-[15px] font-semibold text-primary">{primary.variant}</p>
+                <p className="flex items-center gap-1 text-[12px] text-muted-foreground">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                   {primary.arm ?? 'treatment'}
                 </p>
               </div>
               <span
                 className={cn(
-                  'ml-auto rounded-full px-1.5 py-0.5 text-[11px] font-semibold',
-                  primary.significant ? 'bg-green-50 text-green-700' : 'bg-neutral-100 text-neutral-500'
+                  'ml-auto rounded-full px-1.5 py-0.5 font-data text-[12px] font-semibold',
+                  primary.significant ? 'bg-success/[0.1] text-success' : 'bg-secondary text-muted-foreground'
                 )}
               >
                 {primaryEffectParts(primary).secondary ?? primary.delta}
               </span>
             </div>
           ) : (
-            <p className="mt-1.5 text-sm text-neutral-400">N/A</p>
+            <p className="mt-1.5 text-sm text-muted-foreground">N/A</p>
           )}
         </div>
 
         {/* Data Quality */}
-        <div className="rounded-xl border border-black/10 bg-white p-4">
-          <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+        <div className="rounded-lg border border-border bg-surface p-3.5">
+          <div className="flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground">
             {qualityPassing ? (
               <CheckCircle2 className="h-3.5 w-3.5" />
             ) : (
               <AlertTriangle className="h-3.5 w-3.5" />
             )}
-            Data Quality
+            Data quality
           </div>
           <p
             className={cn(
               'mt-1.5 text-[15px] font-semibold',
-              qualityPassing ? 'text-green-700' : failedChecks.length > 0 ? 'text-amber-700' : 'text-neutral-400'
+              qualityPassing ? 'text-success' : failedChecks.length > 0 ? 'text-warning' : 'text-muted-foreground'
             )}
           >
             {checks.length === 0 ? 'N/A' : qualityPassing ? 'Passing' : `${failedChecks.length} check(s) flagged`}
           </p>
-          <p className="mt-0.5 truncate text-xs text-neutral-400">
+          <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
             {checks.length === 0
               ? 'No automated checks were run.'
               : qualityPassing
@@ -137,8 +140,8 @@ function Badge({ tone, children }: { tone: 'go' | 'neutral'; children: ReactNode
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium',
-        tone === 'go' ? 'border-green-200 bg-green-50 text-green-700' : 'border-black/10 bg-neutral-50 text-neutral-500'
+        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] font-medium',
+        tone === 'go' ? 'border-success/25 bg-success/[0.08] text-success' : 'border-border bg-secondary text-muted-foreground'
       )}
     >
       {children}

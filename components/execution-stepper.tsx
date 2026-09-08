@@ -22,14 +22,14 @@ const GROUP_ORDER = ['Classifier', 'Planner', 'Capability', 'Decision Engine'] a
 function RealStatusIcon({ status }: { status: ExecutionStep['status'] }) {
   switch (status) {
     case 'WARNING':
-      return <AlertTriangle className="h-4 w-4 text-amber-500" />;
+      return <AlertTriangle className="h-4 w-4 text-warning" />;
     case 'FAILED':
-      return <X className="h-4 w-4 text-red-600" />;
+      return <X className="h-4 w-4 text-destructive" />;
     case 'SKIPPED':
-      return <MinusCircle className="h-4 w-4 text-neutral-400" />;
+      return <MinusCircle className="h-4 w-4 text-muted-foreground" />;
     case 'SUCCESS':
     default:
-      return <Check className="h-4 w-4 text-green-600" />;
+      return <Check className="h-4 w-4 text-success" />;
   }
 }
 
@@ -43,7 +43,7 @@ export function ExecutionStepper({ steps, statuses }: StepperProps) {
     <div className="space-y-5">
       {grouped.map(({ group, items }) => (
         <div key={group}>
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
             {group}
           </p>
           <div className="space-y-px">
@@ -54,20 +54,20 @@ export function ExecutionStepper({ steps, statuses }: StepperProps) {
                   key={step.id}
                   className={cn(
                     'flex items-start gap-3 border-l-2 px-3 py-2 transition-colors',
-                    status === 'running' && 'border-black bg-neutral-50',
-                    status === 'done' && step.status === 'FAILED' && 'border-red-300 bg-red-50/40',
-                    status === 'done' && step.status === 'WARNING' && 'border-amber-300 bg-amber-50/40',
-                    status === 'done' && (step.status === 'SUCCESS' || step.status === 'SKIPPED' || !step.status) && 'border-black/30',
-                    status === 'pending' && 'border-black/10 opacity-50'
+                    status === 'running' && 'border-black bg-secondary',
+                    status === 'done' && step.status === 'FAILED' && 'border-destructive/30 bg-destructive/[0.08]',
+                    status === 'done' && step.status === 'WARNING' && 'border-warning/30 bg-warning/[0.08]',
+                    status === 'done' && (step.status === 'SUCCESS' || step.status === 'SKIPPED' || !step.status) && 'border-border-strong',
+                    status === 'pending' && 'border-border opacity-50'
                   )}
                 >
                   <div className="mt-0.5 shrink-0">
                     {status === 'done' && <RealStatusIcon status={step.status} />}
                     {status === 'running' && (
-                      <Loader2 className="h-4 w-4 animate-spin text-black" />
+                      <Loader2 className="h-4 w-4 animate-spin text-foreground" />
                     )}
                     {status === 'pending' && (
-                      <Circle className="h-4 w-4 text-neutral-300" />
+                      <Circle className="h-4 w-4 text-muted-foreground/50" />
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -75,31 +75,31 @@ export function ExecutionStepper({ steps, statuses }: StepperProps) {
                       <p
                         className={cn(
                           'text-[13px] font-medium leading-tight',
-                          status === 'done' && 'text-black',
-                          status === 'running' && 'text-black',
-                          status === 'pending' && 'text-neutral-500'
+                          status === 'done' && 'text-foreground',
+                          status === 'running' && 'text-foreground',
+                          status === 'pending' && 'text-muted-foreground'
                         )}
                       >
                         {step.label}
                       </p>
                       {status === 'done' && step.status === 'SKIPPED' && (
-                        <span className="rounded-full bg-neutral-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-neutral-500">
+                        <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
                           Skipped
                         </span>
                       )}
                       {status === 'done' && step.status === 'WARNING' && (
-                        <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-700">
+                        <span className="rounded-full bg-warning/[0.15] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-warning">
                           Warning
                         </span>
                       )}
                       {status === 'done' && step.status === 'FAILED' && (
-                        <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-red-700">
+                        <span className="rounded-full bg-destructive/[0.15] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-destructive">
                           Failed
                         </span>
                       )}
                     </div>
                     {status !== 'pending' && (
-                      <p className="mt-0.5 text-xs text-neutral-400">
+                      <p className="mt-0.5 text-xs text-muted-foreground">
                         {step.detail}
                       </p>
                     )}

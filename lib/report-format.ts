@@ -74,10 +74,51 @@ export function hypothesisResultLabel(verdict: string | null | undefined): strin
 }
 
 export function verdictBadgeClass(verdict: string | null | undefined) {
-  if (verdict === 'SUPPORTED') return 'border-green-200 bg-green-50 text-green-700';
-  if (verdict === 'PARTIALLY_SUPPORTED') return 'border-amber-200 bg-amber-50 text-amber-700';
-  if (verdict === 'NOT_SUPPORTED') return 'border-red-200 bg-red-50 text-red-700';
-  return 'border-black/10 bg-neutral-50 text-neutral-500';
+  if (verdict === 'SUPPORTED') return 'border-success/25 bg-success/[0.08] text-success';
+  if (verdict === 'PARTIALLY_SUPPORTED') return 'border-warning/25 bg-warning/[0.08] text-warning';
+  if (verdict === 'NOT_SUPPORTED') return 'border-destructive/25 bg-destructive/[0.08] text-destructive';
+  return 'border-border bg-secondary text-muted-foreground';
+}
+
+/** Shared tone → visual mapping so every tile/badge/panel in the
+ *  decision layer (KpiTile, RecommendationCard, guardrails, SRM)
+ *  reads consistently instead of each component inventing its own
+ *  green/amber/red shades. */
+export function toneClasses(tone: DecisionTone) {
+  switch (tone) {
+    case 'go':
+      return {
+        text: 'text-success',
+        bg: 'bg-success/[0.08]',
+        border: 'border-success/25',
+        bar: 'bg-success',
+        icon: 'text-success',
+      };
+    case 'caution':
+      return {
+        text: 'text-warning',
+        bg: 'bg-warning/[0.08]',
+        border: 'border-warning/25',
+        bar: 'bg-warning',
+        icon: 'text-warning',
+      };
+    case 'no':
+      return {
+        text: 'text-destructive',
+        bg: 'bg-destructive/[0.08]',
+        border: 'border-destructive/25',
+        bar: 'bg-destructive',
+        icon: 'text-destructive',
+      };
+    default:
+      return {
+        text: 'text-foreground',
+        bg: 'bg-secondary',
+        border: 'border-border',
+        bar: 'bg-border-strong',
+        icon: 'text-muted-foreground',
+      };
+  }
 }
 
 /** Matches HypothesisEvaluator's own matching rule (app/stats/hypothesis_evaluator.py):

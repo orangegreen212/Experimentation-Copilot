@@ -148,10 +148,10 @@ export function ExperimentVariantsForm({ definition, onSaved }: ExperimentVarian
   };
 
   return (
-    <Card className="border-black/10 shadow-none">
+    <Card className="border-border shadow-none">
       <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
         <div className="flex items-center gap-2">
-          <GitBranch className="h-4 w-4 text-black" />
+          <GitBranch className="h-4 w-4 text-foreground" />
           <div>
             <CardTitle className="text-[15px] tracking-tight">Variants</CardTitle>
             <CardDescription>Exactly one Control; allocations must sum to 100%.</CardDescription>
@@ -159,7 +159,7 @@ export function ExperimentVariantsForm({ definition, onSaved }: ExperimentVarian
         </div>
         <div className="flex items-center gap-1.5">
           {variants.length > 1 && (
-            <Button size="sm" variant="ghost" className="text-neutral-500" onClick={rebalanceEvenly}>
+            <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={rebalanceEvenly}>
               Split evenly
             </Button>
           )}
@@ -171,7 +171,7 @@ export function ExperimentVariantsForm({ definition, onSaved }: ExperimentVarian
       </CardHeader>
       <CardContent className="space-y-3 pt-0">
         {variants.length === 0 && (
-          <div className="rounded-md border border-dashed border-black/15 bg-neutral-50/60 py-8 text-center text-[13px] text-neutral-400">
+          <div className="rounded-md border border-dashed border-border-strong bg-secondary/60 py-8 text-center text-[13px] text-muted-foreground">
             No variants yet — add a Control and at least one Treatment.
           </div>
         )}
@@ -181,7 +181,7 @@ export function ExperimentVariantsForm({ definition, onSaved }: ExperimentVarian
             key={v.id}
             className={cn(
               'space-y-3 rounded-lg border p-4',
-              v.isControl ? 'border-neutral-300 bg-neutral-50' : 'border-black/10'
+              v.isControl ? 'border-border-strong bg-secondary' : 'border-border'
             )}
           >
             <div className="flex items-center justify-between gap-2">
@@ -192,18 +192,18 @@ export function ExperimentVariantsForm({ definition, onSaved }: ExperimentVarian
                   title="Mark as Control"
                   className={cn(
                     'flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors',
-                    v.isControl ? 'border-black bg-black' : 'border-neutral-300 hover:border-neutral-400'
+                    v.isControl ? 'border-primary bg-primary' : 'border-border-strong hover:border-primary/50'
                   )}
                 >
-                  {v.isControl && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+                  {v.isControl && <span className="h-1.5 w-1.5 rounded-full bg-surface" />}
                 </button>
                 <Badge
                   variant="outline"
                   className={cn(
                     'text-[10px] uppercase tracking-wide',
                     v.isControl
-                      ? 'border-neutral-300 bg-neutral-100 text-neutral-600'
-                      : 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                      ? 'border-border-strong bg-secondary text-muted-foreground'
+                      : 'border-primary/25 bg-accent text-primary'
                   )}
                 >
                   {v.isControl ? 'Control' : 'Treatment'}
@@ -213,7 +213,7 @@ export function ExperimentVariantsForm({ definition, onSaved }: ExperimentVarian
                 type="button"
                 onClick={() => removeVariant(index)}
                 title="Remove variant"
-                className="rounded-md p-1.5 text-neutral-300 transition-colors hover:bg-red-50 hover:text-red-600"
+                className="rounded-md p-1.5 text-muted-foreground/50 transition-colors hover:bg-destructive/[0.08] hover:text-destructive"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
@@ -221,16 +221,16 @@ export function ExperimentVariantsForm({ definition, onSaved }: ExperimentVarian
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-[2fr_1fr]">
               <div>
-                <Label className="text-xs font-medium text-neutral-500">Name</Label>
+                <Label className="text-xs font-medium text-muted-foreground">Name</Label>
                 <Input
                   value={v.name}
                   onChange={(e) => updateVariant(index, { name: e.target.value })}
                   placeholder={v.isControl ? 'Control' : 'e.g. Treatment A'}
-                  className="mt-1 h-8 border-black/10 text-sm placeholder:text-neutral-400"
+                  className="mt-1 h-8 border-border text-sm placeholder:text-muted-foreground"
                 />
               </div>
               <div>
-                <Label className="text-xs font-medium text-neutral-500">Allocation %</Label>
+                <Label className="text-xs font-medium text-muted-foreground">Allocation %</Label>
                 <Input
                   type="number"
                   inputMode="decimal"
@@ -241,37 +241,37 @@ export function ExperimentVariantsForm({ definition, onSaved }: ExperimentVarian
                   onChange={(e) =>
                     updateVariant(index, { allocationPct: e.target.value === '' ? 0 : Number(e.target.value) })
                   }
-                  className="mt-1 h-8 border-black/10 text-sm"
+                  className="mt-1 h-8 border-border text-sm"
                 />
               </div>
             </div>
 
             <div>
-              <Label className="text-xs font-medium text-neutral-500">
-                Description <span className="font-normal text-neutral-400">(optional)</span>
+              <Label className="text-xs font-medium text-muted-foreground">
+                Description <span className="font-normal text-muted-foreground">(optional)</span>
               </Label>
               <Input
                 value={v.description ?? ''}
                 onChange={(e) => updateVariant(index, { description: e.target.value === '' ? null : e.target.value })}
                 placeholder="e.g. New landing page + CTA"
-                className="mt-1 h-8 border-black/10 text-sm placeholder:text-neutral-400"
+                className="mt-1 h-8 border-border text-sm placeholder:text-muted-foreground"
               />
             </div>
           </div>
         ))}
 
         {variants.length > 0 && (
-          <div className="flex items-center gap-2 border-t border-black/5 pt-3 text-xs">
+          <div className="flex items-center gap-2 border-t border-border pt-3 text-xs">
             {allocationOk ? (
-              <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
+              <CheckCircle2 className="h-3.5 w-3.5 text-success" />
             ) : (
-              <AlertCircle className="h-3.5 w-3.5 text-red-600" />
+              <AlertCircle className="h-3.5 w-3.5 text-destructive" />
             )}
-            <span className={cn('font-medium', allocationOk ? 'text-neutral-600' : 'text-red-600')}>
+            <span className={cn('font-medium', allocationOk ? 'text-muted-foreground' : 'text-destructive')}>
               Total allocation: {totalAllocation.toFixed(1)}%
             </span>
             {controlCount !== 1 && (
-              <span className="text-red-600">
+              <span className="text-destructive">
                 — exactly one variant must be marked Control (currently {controlCount})
               </span>
             )}
@@ -279,9 +279,9 @@ export function ExperimentVariantsForm({ definition, onSaved }: ExperimentVarian
         )}
 
         <div className="flex items-center justify-end gap-2 pt-1">
-          {saveError && <p className="mr-auto text-xs text-red-600">{saveError}</p>}
+          {saveError && <p className="mr-auto text-xs text-destructive">{saveError}</p>}
           {dirty && !saving && (
-            <Button size="sm" variant="ghost" onClick={handleDiscard} className="text-neutral-500">
+            <Button size="sm" variant="ghost" onClick={handleDiscard} className="text-muted-foreground">
               Discard changes
             </Button>
           )}
@@ -289,7 +289,7 @@ export function ExperimentVariantsForm({ definition, onSaved }: ExperimentVarian
             size="sm"
             onClick={handleSave}
             disabled={!dirty || saving || invalid}
-            className="gap-1.5 bg-indigo-600 text-white hover:bg-indigo-700"
+            className="gap-1.5 bg-primary text-white hover:bg-primary/90"
           >
             {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             Save variants

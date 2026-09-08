@@ -80,33 +80,33 @@ function LoginForm() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-secondary px-4">
       <div className="w-full max-w-sm space-y-6">
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-indigo-600 text-white">
+          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary text-white">
             <FlaskConical className="h-5 w-5" />
           </div>
-          <h1 className="text-lg font-semibold tracking-tight text-black">
+          <h1 className="text-lg font-semibold tracking-tight text-foreground">
             Experiment Review Copilot
           </h1>
-          <p className="text-[13px] text-neutral-500">Sign in to view and run experiments</p>
+          <p className="text-[13px] text-muted-foreground">Sign in to view and run experiments</p>
         </div>
 
-        <Card className="border-black/10 shadow-none">
+        <Card className="border-border shadow-none">
           <CardContent className="space-y-4 p-5">
             {magicLinkSent ? (
               <div className="flex flex-col items-center gap-2 py-4 text-center">
-                <CheckCircle2 className="h-6 w-6 text-green-600" />
-                <p className="text-[13px] font-medium text-black">Check your inbox</p>
-                <p className="text-[12px] text-neutral-500">
-                  We sent a sign-in link to <span className="font-medium text-black">{email}</span>.
+                <CheckCircle2 className="h-6 w-6 text-success" />
+                <p className="text-[13px] font-medium text-foreground">Check your inbox</p>
+                <p className="text-[12px] text-muted-foreground">
+                  We sent a sign-in link to <span className="font-medium text-foreground">{email}</span>.
                 </p>
               </div>
             ) : (
               <>
                 <Button
                   variant="outline"
-                  className="w-full gap-2 border-black/15"
+                  className="w-full gap-2 border-border-strong"
                   onClick={handleGoogleSignIn}
                   disabled={isGoogleLoading || isEmailLoading}
                 >
@@ -119,9 +119,9 @@ function LoginForm() {
                 </Button>
 
                 <div className="flex items-center gap-3">
-                  <div className="h-px flex-1 bg-black/10" />
-                  <span className="text-[11px] uppercase tracking-wide text-neutral-400">or</span>
-                  <div className="h-px flex-1 bg-black/10" />
+                  <div className="h-px flex-1 bg-border" />
+                  <span className="text-[11px] uppercase tracking-wide text-muted-foreground">or</span>
+                  <div className="h-px flex-1 bg-border" />
                 </div>
 
                 <form onSubmit={handleEmailSignIn} className="space-y-2">
@@ -132,12 +132,12 @@ function LoginForm() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={isEmailLoading || isGoogleLoading}
-                    className="border-black/10"
+                    className="border-border"
                   />
                   <Button
                     type="submit"
                     variant="outline"
-                    className="w-full gap-2 border-black/15"
+                    className="w-full gap-2 border-border-strong"
                     disabled={isEmailLoading || isGoogleLoading || !email}
                   >
                     {isEmailLoading ? (
@@ -151,7 +151,7 @@ function LoginForm() {
               </>
             )}
 
-            {error && <p className="text-[12px] text-red-600">{error}</p>}
+            {error && <p className="text-[12px] text-destructive">{error}</p>}
           </CardContent>
         </Card>
       </div>

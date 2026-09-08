@@ -110,10 +110,10 @@ const METRICS: MetricEntry[] = [
 export function MetricsView() {
   return (
     <div className="mx-auto max-w-3xl space-y-4">
-      <Card className="border-black/10 shadow-none">
+      <Card className="border-border shadow-none">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-black" />
+            <BarChart3 className="h-4 w-4 text-foreground" />
             <CardTitle className="text-[15px] tracking-tight">Metrics</CardTitle>
           </div>
           <CardDescription>A reference guide to common experimentation metrics.</CardDescription>
@@ -122,7 +122,7 @@ export function MetricsView() {
           {METRICS.map((metric, i) => (
             <div key={metric.name}>
               <MetricRow metric={metric} />
-              {i < METRICS.length - 1 && <div className="h-px bg-black/10" />}
+              {i < METRICS.length - 1 && <div className="h-px bg-border" />}
             </div>
           ))}
         </CardContent>
@@ -141,29 +141,29 @@ function MetricRow({ metric }: { metric: MetricEntry }) {
         className="flex w-full items-start justify-between gap-4 text-left"
       >
         <div className="min-w-0">
-          <p className="text-[13px] font-medium text-black">{metric.name}</p>
-          <p className="text-xs text-neutral-400">
+          <p className="text-[13px] font-medium text-foreground">{metric.name}</p>
+          <p className="text-xs text-muted-foreground">
             {metric.summary} &middot; {metric.useWhen}
           </p>
         </div>
         <ChevronDown
-          className={cn('mt-0.5 h-4 w-4 shrink-0 text-neutral-400 transition-transform', open && 'rotate-180')}
+          className={cn('mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')}
         />
       </button>
 
       {open && (
-        <dl className="mt-3 space-y-2.5 rounded-md bg-neutral-50 p-3.5 text-xs">
+        <dl className="mt-3 space-y-2.5 rounded-md bg-secondary p-3.5 text-xs">
           <MetricField label="Definition" value={metric.definition} />
           <MetricField label="Formula" value={metric.formula} mono />
           <MetricField label="Example" value={metric.example} />
           <MetricField label="Direction" value={metric.direction} />
           <div>
-            <dt className="font-medium text-black">Common use cases</dt>
-            <dd className="mt-1 flex flex-wrap gap-1.5 text-neutral-500">
+            <dt className="font-medium text-foreground">Common use cases</dt>
+            <dd className="mt-1 flex flex-wrap gap-1.5 text-muted-foreground">
               {metric.commonUseCases.map((useCase) => (
                 <span
                   key={useCase}
-                  className="rounded border border-black/10 bg-white px-1.5 py-0.5 text-[11px]"
+                  className="rounded border border-border bg-surface px-1.5 py-0.5 text-[11px]"
                 >
                   {useCase}
                 </span>
@@ -179,8 +179,8 @@ function MetricRow({ metric }: { metric: MetricEntry }) {
 function MetricField({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <dt className="font-medium text-black">{label}</dt>
-      <dd className={cn('mt-0.5 text-neutral-500', mono && 'font-mono text-[11px]')}>{value}</dd>
+      <dt className="font-medium text-foreground">{label}</dt>
+      <dd className={cn('mt-0.5 text-muted-foreground', mono && 'font-mono text-[11px]')}>{value}</dd>
     </div>
   );
 }

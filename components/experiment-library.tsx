@@ -80,13 +80,13 @@ const STATUS_LABELS: Record<ExperimentStatus, string> = {
 };
 
 const STATUS_STYLES: Record<ExperimentStatus, string> = {
-  draft: 'border-neutral-200 bg-neutral-50 text-neutral-500',
-  ready: 'border-indigo-200 bg-indigo-50 text-indigo-700',
-  running: 'border-blue-200 bg-blue-50 text-blue-700',
-  completed: 'border-green-200 bg-green-50 text-green-700',
-  needs_investigation: 'border-amber-200 bg-amber-50 text-amber-700',
-  invalid: 'border-red-200 bg-red-50 text-red-700',
-  shipped: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  draft: 'border-border bg-secondary text-muted-foreground',
+  ready: 'border-primary/25 bg-accent text-primary',
+  running: 'border-copilot/25 bg-copilot-bg text-copilot',
+  completed: 'border-success/25 bg-success/[0.08] text-success',
+  needs_investigation: 'border-warning/25 bg-warning/[0.08] text-warning',
+  invalid: 'border-destructive/25 bg-destructive/[0.08] text-destructive',
+  shipped: 'border-success/40 bg-success/[0.15] text-success',
 };
 
 const ALL_STATUSES: ExperimentStatus[] = [
@@ -240,16 +240,16 @@ export function ExperimentLibrary({ refreshKey, settings, onContinueToAnalysis }
       {/* Definition list */}
       <div className="flex w-72 shrink-0 flex-col">
         <div className="mb-3 flex items-center gap-2">
-          <FolderKanban className="h-4 w-4 text-black" />
-          <h2 className="text-[13px] font-semibold text-black">Experiments</h2>
-          <Badge variant="outline" className="ml-auto text-[10px] border-black/10 text-neutral-500">
+          <FolderKanban className="h-4 w-4 text-foreground" />
+          <h2 className="text-[13px] font-semibold text-foreground">Experiments</h2>
+          <Badge variant="outline" className="ml-auto text-[10px] border-border text-muted-foreground">
             {!loading && !error ? items.length : '—'}
           </Badge>
         </div>
 
         <Button
           size="sm"
-          className="mb-3 gap-1.5 bg-indigo-600 text-white hover:bg-indigo-700"
+          className="mb-3 gap-1.5 bg-primary text-white hover:bg-primary/90"
           onClick={() => {
             setForm(EMPTY_FORM);
             setCreateError(null);
@@ -261,19 +261,19 @@ export function ExperimentLibrary({ refreshKey, settings, onContinueToAnalysis }
         </Button>
 
         {loading && (
-          <div className="flex items-center gap-2 py-6 text-xs text-neutral-400">
+          <div className="flex items-center gap-2 py-6 text-xs text-muted-foreground">
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
             Loading experiments...
           </div>
         )}
         {!loading && error && (
-          <Card className="border-red-200 bg-red-50 shadow-none">
-            <CardContent className="py-3 text-[13px] text-red-700">{error}</CardContent>
+          <Card className="border-destructive/25 bg-destructive/[0.08] shadow-none">
+            <CardContent className="py-3 text-[13px] text-destructive">{error}</CardContent>
           </Card>
         )}
         {!loading && !error && items.length === 0 && (
-          <Card className="border-black/10 shadow-none">
-            <CardContent className="py-8 text-center text-[13px] text-neutral-400">
+          <Card className="border-border shadow-none">
+            <CardContent className="py-8 text-center text-[13px] text-muted-foreground">
               No experiments yet. Create one to start planning.
             </CardContent>
           </Card>
@@ -289,14 +289,14 @@ export function ExperimentLibrary({ refreshKey, settings, onContinueToAnalysis }
                 key={item.id}
                 className={cn(
                   'group relative w-full border-l-2 px-3 py-3 text-left transition-colors',
-                  active ? 'border-black bg-neutral-50' : 'border-transparent hover:bg-neutral-50'
+                  active ? 'border-black bg-secondary' : 'border-transparent hover:bg-secondary'
                 )}
               >
                 <button onClick={() => setSelectedId(item.id)} className="block w-full text-left">
                   <div className="flex items-center justify-between pr-7">
-                    <span className="truncate text-[15px] font-medium text-black">{item.name}</span>
+                    <span className="truncate text-[15px] font-medium text-foreground">{item.name}</span>
                   </div>
-                  <p className="mt-0.5 truncate text-sm text-neutral-400">
+                  <p className="mt-0.5 truncate text-sm text-muted-foreground">
                     {item.productArea || 'No product area set'}
                     {item.owner ? ` · ${item.owner}` : ''}
                   </p>
@@ -305,7 +305,7 @@ export function ExperimentLibrary({ refreshKey, settings, onContinueToAnalysis }
                       {STATUS_LABELS[item.status]}
                     </Badge>
                     {item.primaryMetric && (
-                      <span className="truncate text-xs text-neutral-400">{item.primaryMetric}</span>
+                      <span className="truncate text-xs text-muted-foreground">{item.primaryMetric}</span>
                     )}
                   </div>
                 </button>
@@ -320,8 +320,8 @@ export function ExperimentLibrary({ refreshKey, settings, onContinueToAnalysis }
                   className={cn(
                     'absolute right-2 top-3 rounded-md p-1.5 transition-colors',
                     isConfirming
-                      ? 'bg-red-50 text-red-600'
-                      : 'text-neutral-300 hover:bg-red-50 hover:text-red-600 group-hover:text-neutral-400'
+                      ? 'bg-destructive/[0.08] text-destructive'
+                      : 'text-muted-foreground/50 hover:bg-destructive/[0.08] hover:text-destructive group-hover:text-muted-foreground'
                   )}
                 >
                   {isDeleting ? (
@@ -339,12 +339,12 @@ export function ExperimentLibrary({ refreshKey, settings, onContinueToAnalysis }
       {/* Detail panel */}
       <div className="min-w-0 flex-1 overflow-y-auto pr-1">
         {detailError && (
-          <Card className="mb-3 border-red-200 bg-red-50 shadow-none">
-            <CardContent className="py-3 text-[13px] text-red-700">{detailError}</CardContent>
+          <Card className="mb-3 border-destructive/25 bg-destructive/[0.08] shadow-none">
+            <CardContent className="py-3 text-[13px] text-destructive">{detailError}</CardContent>
           </Card>
         )}
         {detailLoading && (
-          <div className="flex items-center gap-2 py-6 text-xs text-neutral-400">
+          <div className="flex items-center gap-2 py-6 text-xs text-muted-foreground">
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
             Loading experiment...
           </div>
@@ -353,10 +353,10 @@ export function ExperimentLibrary({ refreshKey, settings, onContinueToAnalysis }
           <div className="space-y-4">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <h2 className="truncate text-lg font-semibold tracking-tight text-black">
+                <h2 className="truncate text-lg font-semibold tracking-tight text-foreground">
                   {detail.name}
                 </h2>
-                <p className="mt-0.5 text-sm text-neutral-400">
+                <p className="mt-0.5 text-sm text-muted-foreground">
                   {detail.productArea || 'No product area'}
                   {detail.owner ? ` · Owner: ${detail.owner}` : ''}
                   {detail.team ? ` · Team: ${detail.team}` : ''}
@@ -383,7 +383,7 @@ export function ExperimentLibrary({ refreshKey, settings, onContinueToAnalysis }
             </div>
 
             {statusBlockedReason && (
-              <p className="-mt-2 text-xs text-amber-700">{statusBlockedReason}</p>
+              <p className="-mt-2 text-xs text-warning">{statusBlockedReason}</p>
             )}
 
             {/* Readiness — gives Draft/Ready/Running/... actual teeth
@@ -394,13 +394,13 @@ export function ExperimentLibrary({ refreshKey, settings, onContinueToAnalysis }
                 Shipped rather than discovering it only from the error
                 above after picking one. */}
             {detail.status !== 'invalid' && detail.status !== 'needs_investigation' && (
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg border border-black/10 bg-neutral-50/60 px-3 py-2">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg border border-border bg-secondary/60 px-3 py-2">
                 {getReadinessChecks(detail).map((c) => (
                   <span
                     key={c.label}
                     className={cn(
                       'flex items-center gap-1.5 text-xs',
-                      c.met ? 'text-green-700' : 'text-neutral-400'
+                      c.met ? 'text-success' : 'text-muted-foreground'
                     )}
                   >
                     {c.met ? (
@@ -414,21 +414,21 @@ export function ExperimentLibrary({ refreshKey, settings, onContinueToAnalysis }
               </div>
             )}
 
-            <Card className="border-black/10 shadow-none">
+            <Card className="border-border shadow-none">
               <CardContent className="py-4">
-                <div className="flex flex-wrap items-center gap-4 text-xs text-neutral-400">
+                <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
                   <span>
-                    Hypotheses: <span className="font-medium text-neutral-600">{detail.hypotheses.length}</span>
+                    Hypotheses: <span className="font-medium text-muted-foreground">{detail.hypotheses.length}</span>
                   </span>
                   <span>
-                    Variants: <span className="font-medium text-neutral-600">{detail.variants.length}</span>
+                    Variants: <span className="font-medium text-muted-foreground">{detail.variants.length}</span>
                   </span>
                   <span>
-                    Metrics: <span className="font-medium text-neutral-600">{detail.metrics.length}</span>
+                    Metrics: <span className="font-medium text-muted-foreground">{detail.metrics.length}</span>
                   </span>
                   <span>
                     Data source:{' '}
-                    <span className="font-medium text-neutral-600">
+                    <span className="font-medium text-muted-foreground">
                       {detail.dataSource?.datasetName || detail.dataSource?.datasetId || 'Not connected yet'}
                     </span>
                   </span>
@@ -489,10 +489,10 @@ export function ExperimentLibrary({ refreshKey, settings, onContinueToAnalysis }
               onDefinitionUpdated={(updated) => setDetail(updated)}
             />
 
-            <Card className="border-dashed border-black/15 bg-neutral-50/60 shadow-none">
+            <Card className="border-dashed border-border-strong bg-secondary/60 shadow-none">
               <CardContent className="flex items-center justify-between gap-4 py-4">
-                <div className="flex items-center gap-2 text-sm text-neutral-500">
-                  <Beaker className="h-4 w-4 text-neutral-400" />
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Beaker className="h-4 w-4 text-muted-foreground" />
                   Prefer the full Overview workflow (prompt, live progress, follow-up chat)?
                 </div>
                 <Button
@@ -511,8 +511,8 @@ export function ExperimentLibrary({ refreshKey, settings, onContinueToAnalysis }
           !detailLoading &&
           !loading &&
           !error && (
-            <Card className="border-black/10 shadow-none">
-              <CardContent className="flex items-center justify-center py-20 text-sm text-neutral-400">
+            <Card className="border-border shadow-none">
+              <CardContent className="flex items-center justify-center py-20 text-sm text-muted-foreground">
                 {items.length > 0
                   ? 'Select an experiment to view its details'
                   : 'No experiments yet — create one to start planning'}
@@ -573,7 +573,7 @@ export function ExperimentLibrary({ refreshKey, settings, onContinueToAnalysis }
                 />
               </div>
             </div>
-            {createError && <p className="text-xs text-red-600">{createError}</p>}
+            {createError && <p className="text-xs text-destructive">{createError}</p>}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={creating}>
@@ -582,7 +582,7 @@ export function ExperimentLibrary({ refreshKey, settings, onContinueToAnalysis }
             <Button
               onClick={handleCreate}
               disabled={creating}
-              className="gap-1.5 bg-indigo-600 text-white hover:bg-indigo-700"
+              className="gap-1.5 bg-primary text-white hover:bg-primary/90"
             >
               {creating && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               Create

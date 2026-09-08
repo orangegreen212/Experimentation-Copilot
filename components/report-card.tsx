@@ -88,7 +88,7 @@ function InfoTooltip({ text }: { text: string }) {
     <Tooltip>
       <TooltipTrigger asChild>
         <Info
-          className="h-3 w-3 shrink-0 cursor-help text-neutral-400 hover:text-neutral-600"
+          className="h-3 w-3 shrink-0 cursor-help text-muted-foreground hover:text-muted-foreground"
           aria-label="More info"
         />
       </TooltipTrigger>
@@ -304,10 +304,10 @@ function buildStateAwareSummary(report: ExperimentReport, state: SummaryState): 
 }
 
 function decisionBadgeVariant(decision: string | null | undefined) {
-  if (decision === 'GO') return 'border-green-200 bg-green-50 text-green-700';
-  if (decision === 'GO_WITH_CAUTION') return 'border-amber-200 bg-amber-50 text-amber-700';
-  if (decision === 'NO_GO' || decision === 'INVALID') return 'border-red-200 bg-red-50 text-red-700';
-  return 'border-black/10 bg-neutral-50 text-neutral-500'; // INCONCLUSIVE / unknown
+  if (decision === 'GO') return 'border-success/25 bg-success/[0.08] text-success';
+  if (decision === 'GO_WITH_CAUTION') return 'border-warning/25 bg-warning/[0.08] text-warning';
+  if (decision === 'NO_GO' || decision === 'INVALID') return 'border-destructive/25 bg-destructive/[0.08] text-destructive';
+  return 'border-border bg-secondary text-muted-foreground'; // INCONCLUSIVE / unknown
 }
 
 /**
@@ -325,64 +325,64 @@ function TopExecutiveSummary({ report }: { report: ExperimentReport }) {
   const isInvalid = state === 'invalid';
 
   return (
-    <Card className="border-black/10 shadow-none">
+    <Card className="border-border shadow-none">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
-          <FileBarChart className="h-4 w-4 text-black" />
+          <FileBarChart className="h-4 w-4 text-foreground" />
           <CardTitle className="text-[15px] tracking-tight">Executive Summary</CardTitle>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-[13px] leading-relaxed text-neutral-700">{summaryText}</p>
+        <p className="text-[13px] leading-relaxed text-foreground">{summaryText}</p>
 
         {primary && (
           <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
             <div
               className={cn(
                 'flex-1 rounded-md border px-4 py-3 text-center',
-                isInvalid ? 'border-black/10 bg-neutral-100' : 'border-black/10 bg-neutral-50'
+                isInvalid ? 'border-border bg-secondary' : 'border-border bg-secondary'
               )}
             >
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">
+              <p className="text-[10px] font-medium text-muted-foreground">
                 Effect
               </p>
               <p
                 className={cn(
                   'mt-0.5 text-xl font-semibold',
                   isInvalid
-                    ? 'text-neutral-400'
+                    ? 'text-muted-foreground'
                     : primary.significant
-                      ? 'text-green-700'
-                      : 'text-neutral-700'
+                      ? 'text-success'
+                      : 'text-foreground'
                 )}
               >
                 {primaryEffectParts(primary).primary}
               </p>
               {primaryEffectParts(primary).secondary && (
-                <p className="mt-0.5 text-[11px] font-medium text-neutral-400">
+                <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">
                   {primaryEffectParts(primary).secondary}
                 </p>
               )}
             </div>
-            <div className="flex-1 rounded-md border border-black/10 bg-neutral-50 px-4 py-3 text-center">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">
+            <div className="flex-1 rounded-md border border-border bg-secondary px-4 py-3 text-center">
+              <p className="text-[10px] font-medium text-muted-foreground">
                 95% CI
               </p>
-              <p className="mt-0.5 font-mono text-base font-semibold text-black">
+              <p className="mt-0.5 font-mono text-base font-semibold text-foreground">
                 [{primary.ciLower}, {primary.ciUpper}]
               </p>
             </div>
-            <div className="flex-1 rounded-md border border-black/10 bg-neutral-50 px-4 py-3 text-center">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">
+            <div className="flex-1 rounded-md border border-border bg-secondary px-4 py-3 text-center">
+              <p className="text-[10px] font-medium text-muted-foreground">
                 p-value
               </p>
-              <p className="mt-0.5 font-mono text-base font-semibold text-black">
+              <p className="mt-0.5 font-mono text-base font-semibold text-foreground">
                 {primary.pValue < 0.001 ? '<0.001' : primary.pValue.toFixed(3)}
               </p>
             </div>
             {report.decision && (
-              <div className="flex-1 rounded-md border border-black/10 px-4 py-3 text-center">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">
+              <div className="flex-1 rounded-md border border-border px-4 py-3 text-center">
+                <p className="text-[10px] font-medium text-muted-foreground">
                   Recommendation
                 </p>
                 <Badge
@@ -397,8 +397,8 @@ function TopExecutiveSummary({ report }: { report: ExperimentReport }) {
         )}
 
         {isInvalid && (
-          <p className="flex items-center gap-1.5 text-[11px] text-neutral-500">
-            <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-red-500" />
+          <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-destructive" />
             The figures above are shown for reference only and must not be used as a business result.
           </p>
         )}
@@ -416,25 +416,25 @@ function ConfidenceBanner({ report }: { report: ExperimentReport }) {
     <div
       className={cn(
         'flex flex-col gap-3 rounded-lg border p-5 sm:flex-row sm:items-center sm:justify-between',
-        isHigh && 'border-green-200 bg-green-50/50',
-        !isHigh && !isLow && 'border-black/10 bg-neutral-50',
-        isLow && 'border-red-200 bg-red-50/50'
+        isHigh && 'border-success/25 bg-success/[0.08]',
+        !isHigh && !isLow && 'border-border bg-secondary',
+        isLow && 'border-destructive/25 bg-destructive/[0.08]'
       )}
     >
       <div className="flex items-center gap-4">
         <div
           className={cn(
             'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
-            isHigh && 'bg-green-100 text-green-700',
-            !isHigh && !isLow && 'bg-neutral-200 text-neutral-600',
-            isLow && 'bg-red-100 text-red-700'
+            isHigh && 'bg-success/[0.15] text-success',
+            !isHigh && !isLow && 'bg-border-strong text-muted-foreground',
+            isLow && 'bg-destructive/[0.15] text-destructive'
           )}
         >
           <ShieldCheck className="h-5 w-5" />
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-base font-semibold tracking-tight text-black">
+            <h2 className="text-base font-semibold tracking-tight text-foreground">
               {/* BUG FIX: this used to say "Recommendation Confidence:"
                   while displaying `report.confidence` — the deterministic
                   data-quality/statistical confidence in the RESULTS
@@ -450,9 +450,9 @@ function ConfidenceBanner({ report }: { report: ExperimentReport }) {
               Confidence in Results:{' '}
               <span
                 className={cn(
-                  isHigh && 'text-green-700',
-                  !isHigh && !isLow && 'text-neutral-700',
-                  isLow && 'text-red-700'
+                  isHigh && 'text-success',
+                  !isHigh && !isLow && 'text-foreground',
+                  isLow && 'text-destructive'
                 )}
               >
                 {report.confidence}
@@ -460,9 +460,9 @@ function ConfidenceBanner({ report }: { report: ExperimentReport }) {
             </h2>
             <span
               className={cn(
-                isHigh && 'text-green-600',
-                !isHigh && !isLow && 'text-neutral-400',
-                isLow && 'text-red-600'
+                isHigh && 'text-success',
+                !isHigh && !isLow && 'text-muted-foreground',
+                isLow && 'text-destructive'
               )}
             >
               {Array.from({ length: 5 }).map((_, i) => (
@@ -478,7 +478,7 @@ function ConfidenceBanner({ report }: { report: ExperimentReport }) {
               ))}
             </span>
           </div>
-          <p className="mt-0.5 max-w-2xl text-[13px] text-neutral-500">
+          <p className="mt-0.5 max-w-2xl text-[13px] text-muted-foreground">
             {report.confidenceReason}
           </p>
         </div>
@@ -486,7 +486,7 @@ function ConfidenceBanner({ report }: { report: ExperimentReport }) {
       {report.srmWarning && (
         <Badge
           variant="outline"
-          className="w-fit shrink-0 gap-1.5 border-red-200 bg-red-50 text-red-700"
+          className="w-fit shrink-0 gap-1.5 border-destructive/25 bg-destructive/[0.08] text-destructive"
         >
           <AlertTriangle className="h-3.5 w-3.5" />
           SRM Warning
@@ -528,18 +528,18 @@ function QualityRow({
 }) {
   const tooltip = QUALITY_LABEL_TOOLTIPS.find((t) => label.toLowerCase().includes(t.match))?.text;
   return (
-    <div className="flex items-start gap-3 rounded-md border border-black/10 px-3 py-2.5">
+    <div className="flex items-start gap-3 rounded-md border border-border px-3 py-2.5">
       {passed ? (
-        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
+        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
       ) : (
-        <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+        <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
       )}
       <div className="min-w-0">
-        <p className="flex items-center gap-1 text-[13px] font-medium text-black">
+        <p className="flex items-center gap-1 text-[13px] font-medium text-foreground">
           {label}
           {tooltip && <InfoTooltip text={tooltip} />}
         </p>
-        <p className="text-xs text-neutral-500">{detail}</p>
+        <p className="text-xs text-muted-foreground">{detail}</p>
       </div>
     </div>
   );
@@ -551,9 +551,9 @@ function StatRow({
   stat: ExperimentReport['stats'][number];
 }) {
   return (
-    <div className="grid grid-cols-12 items-center gap-2 rounded-md border border-black/10 px-3 py-2.5 text-[13px]">
+    <div className="grid grid-cols-12 items-center gap-2 rounded-md border border-border px-3 py-2.5 text-[13px]">
       <div className="col-span-12 sm:col-span-3">
-        <p className="flex items-center gap-1 font-medium text-black">
+        <p className="flex items-center gap-1 font-medium text-foreground">
           {stat.metric}
           {stat.isOmnibus && (
             <InfoTooltip text="Omnibus test — tests whether there is evidence of a difference among the experiment groups overall. It does not provide one single effect size or confidence interval, which is why those are shown as N/A here." />
@@ -561,53 +561,53 @@ function StatRow({
         </p>
       </div>
       <div className="col-span-4 sm:col-span-2">
-        <span className="text-[10px] uppercase tracking-wide text-neutral-400">
+        <span className="text-[11px] font-medium text-muted-foreground">
           Control
         </span>
-        <p className="font-medium text-black">{stat.control}</p>
+        <p className="font-data font-medium text-foreground">{stat.control}</p>
       </div>
       <div className="col-span-4 sm:col-span-2">
-        <span className="text-[10px] uppercase tracking-wide text-neutral-400">
+        <span className="text-[11px] font-medium text-muted-foreground">
           Variant
         </span>
-        <p className="font-medium text-black">{stat.variant}</p>
+        <p className="font-data font-medium text-foreground">{stat.variant}</p>
       </div>
       <div className="col-span-4 sm:col-span-2">
-        <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide text-neutral-400">
+        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
           Delta
           <InfoTooltip text="The absolute difference between the treatment and control results." />
         </span>
         <p
           className={cn(
-            'font-semibold',
-            stat.significant ? 'text-green-700' : 'text-neutral-500'
+            'font-data font-semibold',
+            stat.significant ? 'text-success' : 'text-muted-foreground'
           )}
         >
           {stat.delta}
         </p>
       </div>
       <div className="col-span-6 sm:col-span-1">
-        <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide text-neutral-400">
+        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
           p-value
           <InfoTooltip text="The probability of observing a result at least this extreme if there were no true difference between the groups. It is not the probability that the treatment has no effect." />
         </span>
         <p
           className={cn(
-            'rounded px-1.5 py-0.5 font-mono text-xs font-bold',
+            'w-fit rounded px-1.5 py-0.5 font-data text-[12px] font-semibold',
             stat.pValue < 0.05
-              ? 'bg-green-100 text-green-700'
-              : 'bg-neutral-100 text-neutral-500'
+              ? 'bg-success/[0.12] text-success'
+              : 'bg-secondary text-muted-foreground'
           )}
         >
           {stat.pValue < 0.001 ? '<0.001' : stat.pValue.toFixed(3)}
         </p>
       </div>
       <div className="col-span-6 sm:col-span-2">
-        <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide text-neutral-400">
+        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
           95% CI
           <InfoTooltip text="A range of plausible values for the true effect, estimated from the experiment data. It reflects uncertainty in the estimate, not a probability that the true effect falls in this specific range." />
         </span>
-        <p className="font-mono text-xs text-black">
+        <p className="font-data text-[12px] text-foreground">
           [{stat.ciLower}, {stat.ciUpper}]
         </p>
       </div>
@@ -627,17 +627,17 @@ function DecisionMetricStat({
   tooltip?: string;
 }) {
   return (
-    <div className="rounded-md border border-black/10 bg-neutral-50 px-3 py-2.5">
-      <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-neutral-400">
+    <div className="rounded-md border border-border bg-secondary px-3 py-2.5">
+      <p className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
         {label}
         {tooltip && <InfoTooltip text={tooltip} />}
       </p>
       <p
         className={cn(
           'mt-0.5 text-[13px] font-semibold',
-          emphasis === 'positive' && 'text-green-700',
-          emphasis === 'negative' && 'text-red-700',
-          (!emphasis || emphasis === 'neutral') && 'text-black'
+          emphasis === 'positive' && 'text-success',
+          emphasis === 'negative' && 'text-destructive',
+          (!emphasis || emphasis === 'neutral') && 'text-foreground'
         )}
       >
         {value}
@@ -665,10 +665,10 @@ function HypothesisEvaluationSection({ report }: { report: ExperimentReport }) {
   const matchedStat = findHypothesisStatResult(hypothesis, report.stats);
 
   return (
-    <Card className="border-black/10 shadow-none">
+    <Card className="border-border shadow-none">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
-          <FlaskConical className="h-4 w-4 text-black" />
+          <FlaskConical className="h-4 w-4 text-foreground" />
           <CardTitle className="text-[15px] tracking-tight">Hypothesis Evaluation</CardTitle>
           <Badge
             variant="outline"
@@ -683,55 +683,55 @@ function HypothesisEvaluationSection({ report }: { report: ExperimentReport }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="rounded-md border border-black/10 bg-neutral-50 px-3 py-2.5">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">Hypothesis</p>
-          <p className="mt-0.5 text-[13px] text-black">{hypothesis.statement}</p>
+        <div className="rounded-md border border-border bg-secondary px-3 py-2.5">
+          <p className="text-[10px] font-medium text-muted-foreground">Hypothesis</p>
+          <p className="mt-0.5 text-[13px] text-foreground">{hypothesis.statement}</p>
         </div>
 
         {unavailable ? (
-          <p className="text-[13px] text-neutral-500">
+          <p className="text-[13px] text-muted-foreground">
             {evaluation?.evaluationNote ??
               'This hypothesis could not be evaluated against the computed statistics.'}
           </p>
         ) : (
           <>
             <div>
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                 Why
               </p>
-              <ul className="space-y-1.5 text-[13px] text-neutral-700">
+              <ul className="space-y-1.5 text-[13px] text-foreground">
                 <li>
-                  <span className="font-medium text-black">Observed effect:</span>{' '}
+                  <span className="font-medium text-foreground">Observed effect:</span>{' '}
                   {formatPercent(evaluation.observedEffectRelative)} relative
                 </li>
                 {evaluation.expectedEffectRelative != null && (
                   <li>
-                    <span className="font-medium text-black">Expected effect:</span>{' '}
+                    <span className="font-medium text-foreground">Expected effect:</span>{' '}
                     {formatPercent(evaluation.expectedEffectRelative)} relative
                   </li>
                 )}
                 <li>
-                  <span className="font-medium text-black">Statistical significance:</span>{' '}
+                  <span className="font-medium text-foreground">Statistical significance:</span>{' '}
                   {evaluation.statisticallySignificant ? 'Yes' : 'No'}
                   {matchedStat != null &&
                     `, p ${matchedStat.pValue < 0.001 ? '< 0.001' : `= ${matchedStat.pValue.toFixed(3)}`}`}
                 </li>
                 {matchedStat != null && (
                   <li>
-                    <span className="font-medium text-black">95% CI:</span> [{matchedStat.ciLower}
+                    <span className="font-medium text-foreground">95% CI:</span> [{matchedStat.ciLower}
                     , {matchedStat.ciUpper}]
                   </li>
                 )}
                 {report.experimentValidity && (
                   <li>
-                    <span className="font-medium text-black">Experiment validity:</span>{' '}
+                    <span className="font-medium text-foreground">Experiment validity:</span>{' '}
                     {report.experimentValidity}
                   </li>
                 )}
               </ul>
             </div>
 
-            <p className="text-[13px] leading-relaxed text-neutral-700">
+            <p className="text-[13px] leading-relaxed text-foreground">
               {verdict === 'SUPPORTED' &&
                 'The experiment provides sufficient statistical evidence to support the hypothesis' +
                   (evaluation.expectedEffectRelative != null
@@ -756,7 +756,7 @@ function HypothesisEvaluationSection({ report }: { report: ExperimentReport }) {
             {verdict === 'NOT_SUPPORTED' &&
               report.decisionAudit?.powerEvidence &&
               report.decisionAudit.powerEvidence.status === 'warning' && (
-                <div className="flex items-start gap-2.5 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-[13px] text-amber-800">
+                <div className="flex items-start gap-2.5 rounded-md border border-warning/25 bg-warning/[0.08] px-3 py-2.5 text-[13px] text-warning">
                   <HelpCircle className="mt-0.5 h-4 w-4 shrink-0" />
                   <p>
                     This run was underpowered ({report.decisionAudit.powerEvidence.value}
@@ -775,7 +775,7 @@ function HypothesisEvaluationSection({ report }: { report: ExperimentReport }) {
         {/* Explicit separation: hypothesis verdict, experiment validity,
             guardrails, and the final business recommendation are four
             distinct signals — never collapsed into one field. */}
-        <Separator className="bg-black/10" />
+        <Separator className="bg-border" />
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <DecisionMetricStat label="Hypothesis" value={hypothesisResultLabel(verdict)} />
           <DecisionMetricStat label="Experiment Validity" value={report.experimentValidity ?? 'N/A'} />
@@ -805,10 +805,10 @@ function DecisionSupportSection({
   const ds = decisionSupport;
 
   return (
-    <Card className="border-black/10 shadow-none">
+    <Card className="border-border shadow-none">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
-          <Target className="h-4 w-4 text-black" />
+          <Target className="h-4 w-4 text-foreground" />
           <CardTitle className="text-[15px] tracking-tight">Decision Support</CardTitle>
         </div>
         <CardDescription>
@@ -818,7 +818,7 @@ function DecisionSupportSection({
       </CardHeader>
       <CardContent className="space-y-4">
         {!ds.available && ds.warnings.length > 0 && (
-          <div className="flex items-start gap-2.5 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-[13px] text-amber-800">
+          <div className="flex items-start gap-2.5 rounded-md border border-warning/25 bg-warning/[0.08] px-3 py-2.5 text-[13px] text-warning">
             <HelpCircle className="mt-0.5 h-4 w-4 shrink-0" />
             <div className="space-y-1">
               {ds.warnings.map((w, i) => (
@@ -883,32 +883,32 @@ function DecisionSupportSection({
             </div>
 
             {ds.businessInterpretation && (
-              <p className="text-[13px] leading-relaxed text-neutral-700">
+              <p className="text-[13px] leading-relaxed text-foreground">
                 {ds.businessInterpretation}
               </p>
             )}
 
             {/* Business impact — backend-supplied value only, never computed here */}
-            <div className="rounded-md border border-black/10 px-3 py-2.5">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">
+            <div className="rounded-md border border-border px-3 py-2.5">
+              <p className="text-[10px] font-medium text-muted-foreground">
                 Business Impact
               </p>
               {ds.impactCalculationMethod === 'population_scaled' && ds.incrementalCount != null ? (
-                <p className="mt-0.5 text-[13px] font-semibold text-black">
+                <p className="mt-0.5 text-[13px] font-semibold text-foreground">
                   {ds.incrementalCount >= 0 ? '+' : ''}
                   {ds.incrementalCount.toLocaleString(undefined, { maximumFractionDigits: 0 })}{' '}
-                  <span className="font-normal text-neutral-500">
+                  <span className="font-normal text-muted-foreground">
                     (baseline {ds.baselineExpectedCount?.toLocaleString(undefined, { maximumFractionDigits: 0 })}{' '}
                     → observed {ds.observedCount?.toLocaleString(undefined, { maximumFractionDigits: 0 })})
                   </span>
                 </p>
               ) : (
-                <p className="mt-0.5 text-[13px] text-neutral-500">Not available</p>
+                <p className="mt-0.5 text-[13px] text-muted-foreground">Not available</p>
               )}
               {ds.warnings.length > 0 && ds.available && (
                 <div className="mt-2 space-y-1">
                   {ds.warnings.map((w, i) => (
-                    <p key={i} className="text-[11px] text-neutral-500">
+                    <p key={i} className="text-[11px] text-muted-foreground">
                       {w}
                     </p>
                   ))}
@@ -921,23 +921,23 @@ function DecisionSupportSection({
         {/* Additional metrics */}
         {ds.additionalMetrics.length > 0 && (
           <div>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
               Additional Metrics
             </p>
             <div className="space-y-2">
               {ds.additionalMetrics.map((m) => (
                 <div
                   key={m.metric}
-                  className="flex items-center justify-between gap-3 rounded-md border border-black/10 px-3 py-2.5 text-[13px]"
+                  className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2.5 text-[13px]"
                 >
-                  <span className="font-medium text-black">{m.metric}</span>
+                  <span className="font-medium text-foreground">{m.metric}</span>
                   <div className="flex items-center gap-3">
                     <span
                       className={cn(
                         'font-semibold',
-                        m.direction === 'increase' && 'text-green-700',
-                        m.direction === 'decrease' && 'text-red-700',
-                        m.direction === 'no_change' && 'text-neutral-500'
+                        m.direction === 'increase' && 'text-success',
+                        m.direction === 'decrease' && 'text-destructive',
+                        m.direction === 'no_change' && 'text-muted-foreground'
                       )}
                     >
                       {formatPercent(m.relativeChange)}
@@ -947,8 +947,8 @@ function DecisionSupportSection({
                       className={cn(
                         'text-[10px]',
                         m.statisticallySignificant
-                          ? 'border-black/10 text-neutral-700'
-                          : 'border-black/10 text-neutral-400'
+                          ? 'border-border text-foreground'
+                          : 'border-border text-muted-foreground'
                       )}
                     >
                       {m.statisticallySignificant ? 'Significant' : 'Not significant'}
@@ -966,23 +966,23 @@ function DecisionSupportSection({
             showing the same list twice. */}
         {ds.guardrailFindings.length === 0 && (
           <div>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
               Guardrails
             </p>
             {guardrailRequestState === 'REQUESTED_NOT_FOUND' ||
             guardrailRequestState === 'PARTIALLY_AVAILABLE' ? (
               <div className="space-y-1">
-                <p className="text-[13px] text-neutral-500">Requested — not found</p>
+                <p className="text-[13px] text-muted-foreground">Requested — not found</p>
                 {(guardrailResolutions ?? [])
                   .filter((r) => !r.resolved)
                   .map((r) => (
-                    <p key={r.requestedName} className="text-[11px] text-neutral-400">
+                    <p key={r.requestedName} className="text-[11px] text-muted-foreground">
                       {r.requestedName} — no matching metric in this dataset
                     </p>
                   ))}
               </div>
             ) : (
-              <p className="text-[13px] text-neutral-500">Not specified</p>
+              <p className="text-[13px] text-muted-foreground">Not specified</p>
             )}
           </div>
         )}
@@ -992,17 +992,17 @@ function DecisionSupportSection({
 }
 
 function decisionBadgeClass(decision: string | null | undefined) {
-  if (decision === 'GO') return 'border-green-200 bg-green-50 text-green-700';
-  if (decision === 'GO_WITH_CAUTION') return 'border-amber-200 bg-amber-50 text-amber-700';
-  if (decision === 'NO_GO' || decision === 'INVALID') return 'border-red-200 bg-red-50 text-red-700';
-  return 'border-black/10 bg-neutral-50 text-neutral-500'; // INCONCLUSIVE / unknown
+  if (decision === 'GO') return 'border-success/25 bg-success/[0.08] text-success';
+  if (decision === 'GO_WITH_CAUTION') return 'border-warning/25 bg-warning/[0.08] text-warning';
+  if (decision === 'NO_GO' || decision === 'INVALID') return 'border-destructive/25 bg-destructive/[0.08] text-destructive';
+  return 'border-border bg-secondary text-muted-foreground'; // INCONCLUSIVE / unknown
 }
 
 function guardrailBadgeClass(status: string | null | undefined) {
-  if (status === 'PASS') return 'border-green-200 bg-green-50 text-green-700';
-  if (status === 'WARNING') return 'border-amber-200 bg-amber-50 text-amber-700';
-  if (status === 'FAIL') return 'border-red-200 bg-red-50 text-red-700';
-  return 'border-black/10 bg-neutral-50 text-neutral-500'; // NOT_AVAILABLE
+  if (status === 'PASS') return 'border-success/25 bg-success/[0.08] text-success';
+  if (status === 'WARNING') return 'border-warning/25 bg-warning/[0.08] text-warning';
+  if (status === 'FAIL') return 'border-destructive/25 bg-destructive/[0.08] text-destructive';
+  return 'border-border bg-secondary text-muted-foreground'; // NOT_AVAILABLE
 }
 
 /**
@@ -1036,13 +1036,13 @@ function guardrailBadgeLabel(report: ExperimentReport): string | null {
 
 function guardrailStripBadgeClass(report: ExperimentReport): string {
   const state = report.guardrailRequestState;
-  if (state === 'REQUESTED_NOT_FOUND') return 'border-amber-200 bg-amber-50 text-amber-700';
-  if (state === 'PARTIALLY_AVAILABLE') return 'border-amber-200 bg-amber-50 text-amber-700';
+  if (state === 'REQUESTED_NOT_FOUND') return 'border-warning/25 bg-warning/[0.08] text-warning';
+  if (state === 'PARTIALLY_AVAILABLE') return 'border-warning/25 bg-warning/[0.08] text-warning';
   if (
     state === 'AVAILABLE' &&
     (!report.guardrailStatus || report.guardrailStatus === 'NOT_AVAILABLE')
   ) {
-    return 'border-amber-200 bg-amber-50 text-amber-700'; // resolved but not evaluated
+    return 'border-warning/25 bg-warning/[0.08] text-warning'; // resolved but not evaluated
   }
   return guardrailBadgeClass(report.guardrailStatus);
 }
@@ -1061,10 +1061,10 @@ function DecisionNarrativeSection({ narrative }: { narrative: DecisionNarrative 
     monitoring.potentialMonitoringMetrics.length > 0;
 
   return (
-    <Card className="border-black/10 shadow-none">
+    <Card className="border-border shadow-none">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
-          <Lightbulb className="h-4 w-4 text-black" />
+          <Lightbulb className="h-4 w-4 text-foreground" />
           <CardTitle className="text-[15px] tracking-tight">Decision Narrative</CardTitle>
         </div>
         <CardDescription>What this decision means for the product team</CardDescription>
@@ -1072,13 +1072,13 @@ function DecisionNarrativeSection({ narrative }: { narrative: DecisionNarrative 
       <CardContent className="space-y-2.5">
       {narrative.whyThisDecision.length > 0 && (
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
             Why this decision
           </p>
           <ul className="mt-1 space-y-1">
             {narrative.whyThisDecision.map((line, i) => (
-              <li key={i} className="flex items-start gap-2 text-[12px] text-neutral-600">
-                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-neutral-400" />
+              <li key={i} className="flex items-start gap-2 text-[12px] text-muted-foreground">
+                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/50" />
                 {line}
               </li>
             ))}
@@ -1088,13 +1088,13 @@ function DecisionNarrativeSection({ narrative }: { narrative: DecisionNarrative 
 
       {narrative.whatPreventsFullGo.length > 0 && (
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
             What prevents a full GO
           </p>
           <ul className="mt-1 space-y-1">
             {narrative.whatPreventsFullGo.map((line, i) => (
-              <li key={i} className="flex items-start gap-2 text-[12px] text-neutral-600">
-                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-amber-500" />
+              <li key={i} className="flex items-start gap-2 text-[12px] text-muted-foreground">
+                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-warning" />
                 {line}
               </li>
             ))}
@@ -1104,13 +1104,13 @@ function DecisionNarrativeSection({ narrative }: { narrative: DecisionNarrative 
 
       {narrative.whatWouldChangeDecision.length > 0 && (
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
             What would change the decision
           </p>
           <ul className="mt-1 space-y-1">
             {narrative.whatWouldChangeDecision.map((line, i) => (
-              <li key={i} className="flex items-start gap-2 text-[12px] text-neutral-600">
-                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-neutral-400" />
+              <li key={i} className="flex items-start gap-2 text-[12px] text-muted-foreground">
+                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/50" />
                 {line}
               </li>
             ))}
@@ -1120,22 +1120,22 @@ function DecisionNarrativeSection({ narrative }: { narrative: DecisionNarrative 
 
       {hasMonitoringContent && (
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
             What to monitor
           </p>
           <div className="mt-1 flex flex-wrap gap-1.5">
             {monitoring.primaryMetric && (
-              <Badge variant="outline" className="border-black/10 text-[10px] text-neutral-700">
+              <Badge variant="outline" className="border-border text-[10px] text-foreground">
                 {monitoring.primaryMetric} (primary)
               </Badge>
             )}
             {monitoring.guardrailsEvaluated.map((m) => (
-              <Badge key={m} variant="outline" className="border-blue-200 bg-blue-50 text-[10px] text-blue-700">
+              <Badge key={m} variant="outline" className="border-copilot/25 bg-copilot-bg text-[10px] text-copilot">
                 {m} (guardrail)
               </Badge>
             ))}
             {monitoring.potentialMonitoringMetrics.map((m) => (
-              <Badge key={m} variant="outline" className="border-black/10 text-[10px] text-neutral-500">
+              <Badge key={m} variant="outline" className="border-border text-[10px] text-muted-foreground">
                 {m}
               </Badge>
             ))}
@@ -1145,10 +1145,10 @@ function DecisionNarrativeSection({ narrative }: { narrative: DecisionNarrative 
 
       {narrative.recommendedNextStep && (
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
             Recommended next step
           </p>
-          <p className="mt-1 text-[12px] text-neutral-700">{narrative.recommendedNextStep}</p>
+          <p className="mt-1 text-[12px] text-foreground">{narrative.recommendedNextStep}</p>
         </div>
       )}
       </CardContent>
@@ -1204,31 +1204,31 @@ export function EvidenceSection({
 
   if (retrievalError) {
     return (
-      <Card className="border-black/10 shadow-none">
+      <Card className="border-border shadow-none">
         <CardHeader
           className="cursor-pointer select-none pb-3"
           onClick={() => setExpanded((v) => !v)}
         >
           <div className="flex items-center gap-2">
-            <BookOpen className="h-4 w-4 text-black" />
+            <BookOpen className="h-4 w-4 text-foreground" />
             <CardTitle className="text-[15px] tracking-tight">Evidence &amp; Sources</CardTitle>
-            <Badge variant="outline" className="ml-auto border-red-200 text-[10px] font-semibold text-red-600">
+            <Badge variant="outline" className="ml-auto border-destructive/25 text-[10px] font-semibold text-destructive">
               Retrieval failed
             </Badge>
             <ChevronDown
-              className={cn('h-4 w-4 shrink-0 text-neutral-400 transition-transform', expanded && 'rotate-180')}
+              className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', expanded && 'rotate-180')}
             />
           </div>
           <CardDescription>{expanded ? 'click to collapse' : 'click to expand'}</CardDescription>
         </CardHeader>
         {expanded && (
           <CardContent className="space-y-1">
-            <p className="text-[12px] font-medium text-red-600">Knowledge base retrieval failed.</p>
-            <p className="text-[12px] text-neutral-500">
+            <p className="text-[12px] font-medium text-destructive">Knowledge base retrieval failed.</p>
+            <p className="text-[12px] text-muted-foreground">
               The knowledge base could not be queried, so no methodology evidence was used for this
               decision. The decision above was based only on deterministic validation rules.
             </p>
-            <p className="mt-1 text-[10px] text-neutral-400">Retrieval error: {retrievalError}</p>
+            <p className="mt-1 text-[10px] text-muted-foreground">Retrieval error: {retrievalError}</p>
           </CardContent>
         )}
       </Card>
@@ -1237,23 +1237,23 @@ export function EvidenceSection({
 
   if (!references || references.length === 0) {
     return (
-      <Card className="border-black/10 shadow-none">
+      <Card className="border-border shadow-none">
         <CardHeader
           className="cursor-pointer select-none pb-3"
           onClick={() => setExpanded((v) => !v)}
         >
           <div className="flex items-center gap-2">
-            <BookOpen className="h-4 w-4 text-black" />
+            <BookOpen className="h-4 w-4 text-foreground" />
             <CardTitle className="text-[15px] tracking-tight">Evidence &amp; Sources</CardTitle>
             <ChevronDown
-              className={cn('ml-auto h-4 w-4 shrink-0 text-neutral-400 transition-transform', expanded && 'rotate-180')}
+              className={cn('ml-auto h-4 w-4 shrink-0 text-muted-foreground transition-transform', expanded && 'rotate-180')}
             />
           </div>
           <CardDescription>{expanded ? 'click to collapse' : 'click to expand'}</CardDescription>
         </CardHeader>
         {expanded && (
           <CardContent>
-            <p className="text-[12px] text-neutral-500">
+            <p className="text-[12px] text-muted-foreground">
               {blockingIssue
                 ? `No sufficiently relevant evidence found for: ${blockingIssue}.`
                 : "No sufficiently relevant evidence found."}
@@ -1265,19 +1265,18 @@ export function EvidenceSection({
   }
 
   return (
-    <Card className="border-black/10 shadow-none">
+    <Card className="border-border shadow-none">
       <CardHeader
         className="cursor-pointer select-none pb-3"
         onClick={() => setExpanded((v) => !v)}
       >
         <div className="flex items-center gap-2">
-          <BookOpen className="h-4 w-4 text-black" />
-          <CardTitle className="text-[15px] tracking-tight">Evidence &amp; Sources</CardTitle>
-          <Badge variant="outline" className="ml-auto border-black/10 text-[10px] text-neutral-500">
-            {references.length}
-          </Badge>
+          <BookOpen className="h-4 w-4 text-foreground" />
+          <CardTitle className="text-[15px] tracking-tight">
+            Evidence &amp; Sources <span className="font-data font-normal text-muted-foreground">· {references.length} items</span>
+          </CardTitle>
           <ChevronDown
-            className={cn('h-4 w-4 shrink-0 text-neutral-400 transition-transform', expanded && 'rotate-180')}
+            className={cn('ml-auto h-4 w-4 shrink-0 text-muted-foreground transition-transform', expanded && 'rotate-180')}
           />
         </div>
         <CardDescription>
@@ -1288,15 +1287,15 @@ export function EvidenceSection({
       {expanded && (
       <CardContent className="space-y-2">
         {references.map((ref, i) => (
-          <div key={`${ref.source}-${ref.heading}-${i}`} className="rounded-md border border-black/10 bg-neutral-50 px-3 py-2">
+          <div key={`${ref.source}-${ref.heading}-${i}`} className="rounded-md border border-border bg-secondary px-3 py-2">
             <div className="flex flex-wrap items-center justify-between gap-1.5">
-              <p className="text-[12px] font-medium text-black">{ref.heading}</p>
-              <Badge variant="outline" className="border-black/10 text-[10px] text-neutral-500">
+              <p className="text-[12px] font-medium text-foreground">{ref.heading}</p>
+              <Badge variant="outline" className="border-border text-[10px] text-muted-foreground">
                 {ref.source}
               </Badge>
             </div>
-            <p className="mt-1 text-[11px] leading-relaxed text-neutral-600">{ref.excerpt}</p>
-            <p className="mt-1 text-[10px] text-neutral-400">Relevance score: {ref.relevanceScore.toFixed(2)}</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{ref.excerpt}</p>
+            <p className="mt-1 text-[10px] text-muted-foreground">Relevance score: {ref.relevanceScore.toFixed(2)}</p>
           </div>
         ))}
       </CardContent>
@@ -1314,8 +1313,8 @@ export function EvidenceSection({
 function DecisionStrip({ report }: { report: ExperimentReport }) {
   if (!report.decision) return null;
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-black/10 bg-white px-4 py-3">
-      <span className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface px-4 py-3">
+      <span className="text-[10px] font-medium text-muted-foreground">
         Decision
       </span>
       <Badge variant="outline" className={cn('text-[11px] font-semibold', decisionBadgeClass(report.decision))}>
@@ -1327,7 +1326,7 @@ function DecisionStrip({ report }: { report: ExperimentReport }) {
         </Badge>
       )}
       {report.experimentValidity && (
-        <Badge variant="outline" className="border-black/10 text-[10px] text-neutral-600">
+        <Badge variant="outline" className="border-border text-[10px] text-muted-foreground">
           Validity: {report.experimentValidity}
         </Badge>
       )}
@@ -1337,12 +1336,12 @@ function DecisionStrip({ report }: { report: ExperimentReport }) {
           decision itself. See ConfidenceBanner above for the other
           half of this fix. */}
       {report.recommendationConfidence && (
-        <Badge variant="outline" className="border-black/10 text-[10px] text-neutral-600">
+        <Badge variant="outline" className="border-border text-[10px] text-muted-foreground">
           Recommendation Confidence: {report.recommendationConfidence}
         </Badge>
       )}
       {report.decisionReason && (
-        <p className="mt-1 basis-full text-[12px] text-neutral-500">{report.decisionReason}</p>
+        <p className="mt-1 basis-full text-[12px] text-muted-foreground">{report.decisionReason}</p>
       )}
       {/* Canonical list of what was actually requested/resolved — only
           when there's something to say beyond the badge (guardrail
@@ -1351,8 +1350,8 @@ function DecisionStrip({ report }: { report: ExperimentReport }) {
       {report.guardrailResolutions && report.guardrailResolutions.length > 0 && (
         <div className="mt-1 basis-full space-y-1">
           {report.guardrailResolutions.map((r) => (
-            <p key={r.requestedName} className="text-[11px] text-neutral-500">
-              <span className="font-medium text-black">{r.requestedName}</span>
+            <p key={r.requestedName} className="text-[11px] text-muted-foreground">
+              <span className="font-medium text-foreground">{r.requestedName}</span>
               {r.resolved ? ' — resolved' : ' — not found in this dataset'}
             </p>
           ))}
@@ -1363,32 +1362,32 @@ function DecisionStrip({ report }: { report: ExperimentReport }) {
 }
 
 function auditStatusBadgeClass(status: AuditFact['status']) {
-  if (status === 'pass') return 'border-green-200 bg-green-50 text-green-700';
-  if (status === 'warning') return 'border-amber-200 bg-amber-50 text-amber-700';
-  if (status === 'fail') return 'border-red-200 bg-red-50 text-red-700';
-  if (status === 'not_available') return 'border-black/10 bg-neutral-50 text-neutral-500';
-  return 'border-black/10 bg-neutral-50 text-neutral-600'; // info
+  if (status === 'pass') return 'border-success/25 bg-success/[0.08] text-success';
+  if (status === 'warning') return 'border-warning/25 bg-warning/[0.08] text-warning';
+  if (status === 'fail') return 'border-destructive/25 bg-destructive/[0.08] text-destructive';
+  if (status === 'not_available') return 'border-border bg-secondary text-muted-foreground';
+  return 'border-border bg-secondary text-muted-foreground'; // info
 }
 
 function auditStatusIcon(status: AuditFact['status']) {
-  if (status === 'pass') return <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />;
-  if (status === 'fail') return <XCircle className="h-3.5 w-3.5 text-red-600" />;
-  if (status === 'warning') return <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />;
-  return <HelpCircle className="h-3.5 w-3.5 text-neutral-400" />;
+  if (status === 'pass') return <CheckCircle2 className="h-3.5 w-3.5 text-success" />;
+  if (status === 'fail') return <XCircle className="h-3.5 w-3.5 text-destructive" />;
+  if (status === 'warning') return <AlertTriangle className="h-3.5 w-3.5 text-warning" />;
+  return <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />;
 }
 
 function AuditFactRow({ fact }: { fact: AuditFact }) {
   return (
-    <div className="flex items-start gap-2 rounded-md border border-black/10 px-3 py-2">
+    <div className="flex items-start gap-2 rounded-md border border-border px-3 py-2">
       <span className="mt-0.5 shrink-0">{auditStatusIcon(fact.status)}</span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[12px] font-medium text-black">{fact.label}</span>
+          <span className="text-[12px] font-medium text-foreground">{fact.label}</span>
           <Badge variant="outline" className={cn('text-[10px]', auditStatusBadgeClass(fact.status))}>
             {fact.value}
           </Badge>
         </div>
-        {fact.detail && <p className="mt-0.5 text-[11px] text-neutral-500">{fact.detail}</p>}
+        {fact.detail && <p className="mt-0.5 text-[11px] text-muted-foreground">{fact.detail}</p>}
       </div>
     </div>
   );
@@ -1407,19 +1406,19 @@ function AuditFactRow({ fact }: { fact: AuditFact }) {
 function DecisionAuditTrailSection({ audit }: { audit: DecisionAuditTrail }) {
   const [expanded, setExpanded] = useState(false);
   return (
-    <Card className="border-black/10 shadow-none">
+    <Card className="border-border shadow-none">
       <CardHeader
         className="cursor-pointer select-none pb-3"
         onClick={() => setExpanded((v) => !v)}
       >
         <div className="flex items-center gap-2">
-          <ListChecks className="h-4 w-4 text-black" />
+          <ListChecks className="h-4 w-4 text-foreground" />
           <CardTitle className="text-[15px] tracking-tight">Decision Audit Trail</CardTitle>
           <Badge variant="outline" className={cn('ml-auto text-[10px] font-semibold', decisionBadgeClass(audit.decision))}>
             {audit.headline}
           </Badge>
           <ChevronDown
-            className={cn('h-4 w-4 shrink-0 text-neutral-400 transition-transform', expanded && 'rotate-180')}
+            className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', expanded && 'rotate-180')}
           />
         </div>
         <CardDescription>
@@ -1429,14 +1428,14 @@ function DecisionAuditTrailSection({ audit }: { audit: DecisionAuditTrail }) {
       {expanded && (
         <CardContent className="space-y-4">
         <div>
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
             Why this decision
           </p>
           <ul className="space-y-1.5">
             {audit.rationale.map((r, i) => (
               <li key={i} className="flex items-start gap-2.5 text-[13px]">
-                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-indigo-600" />
-                <span className="text-neutral-700">{r}</span>
+                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary" />
+                <span className="text-foreground">{r}</span>
               </li>
             ))}
           </ul>
@@ -1444,7 +1443,7 @@ function DecisionAuditTrailSection({ audit }: { audit: DecisionAuditTrail }) {
 
         {audit.supportingFacts.length > 0 && (
           <div>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
               Evidence supporting decision
             </p>
             <div className="space-y-1.5">
@@ -1457,7 +1456,7 @@ function DecisionAuditTrailSection({ audit }: { audit: DecisionAuditTrail }) {
 
         {audit.warnings.length > 0 && (
           <div>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
               Warnings / limitations
             </p>
             <div className="space-y-1.5">
@@ -1468,12 +1467,12 @@ function DecisionAuditTrailSection({ audit }: { audit: DecisionAuditTrail }) {
           </div>
         )}
 
-        <Separator className="bg-black/10" />
+        <Separator className="bg-border" />
         <div>
-          <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
             Decision impact
           </p>
-          <p className="text-[13px] leading-relaxed text-neutral-700">{audit.decisionImpact}</p>
+          <p className="text-[13px] leading-relaxed text-foreground">{audit.decisionImpact}</p>
         </div>
         </CardContent>
       )}
@@ -1507,23 +1506,23 @@ function StratificationAnalysisSection({
   const estimate = stratification.estimate;
 
   return (
-    <Card className="border-black/10 shadow-none">
+    <Card className="border-border shadow-none">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
-          <Rows3 className="h-4 w-4 text-black" />
+          <Rows3 className="h-4 w-4 text-foreground" />
           <CardTitle className="text-[15px] tracking-tight">Stratified Analysis</CardTitle>
         </div>
         <CardDescription>
-          Variable: <span className="font-medium text-neutral-700">{stratification.stratificationColumn}</span>
+          Variable: <span className="font-medium text-foreground">{stratification.stratificationColumn}</span>
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {stratification.status === 'not_run' && (
-          <div className="rounded-md border border-black/10 bg-neutral-50 px-3 py-4">
-            <Badge variant="outline" className="mb-2 text-[10px] text-neutral-500">
+          <div className="rounded-md border border-border bg-secondary px-3 py-4">
+            <Badge variant="outline" className="mb-2 text-[10px] text-muted-foreground">
               Status: NOT RUN
             </Badge>
-            <p className="text-[13px] text-neutral-600">
+            <p className="text-[13px] text-muted-foreground">
               {stratification.notRunReason ??
                 'Stratified inference was not performed because the experiment is invalid.'}
             </p>
@@ -1531,49 +1530,49 @@ function StratificationAnalysisSection({
         )}
 
         {stratification.status === 'ran' && eligibility && !eligibility.eligible && (
-          <div className="rounded-md border border-black/10 bg-neutral-50 px-3 py-4">
-            <Badge variant="outline" className="mb-2 text-[10px] text-neutral-500">
+          <div className="rounded-md border border-border bg-secondary px-3 py-4">
+            <Badge variant="outline" className="mb-2 text-[10px] text-muted-foreground">
               Not Eligible
             </Badge>
-            <p className="text-[13px] text-neutral-600">{eligibility.reason}</p>
+            <p className="text-[13px] text-muted-foreground">{eligibility.reason}</p>
           </div>
         )}
 
         {stratification.status === 'ran' && eligibility && eligibility.eligible && estimate && (
           <>
-            <p className="text-[13px] text-neutral-600">{eligibility.reason}</p>
+            <p className="text-[13px] text-muted-foreground">{eligibility.reason}</p>
 
-            <div className="rounded-md border border-black/10 p-3">
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+            <div className="rounded-md border border-border p-3">
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                 Combined Stratified Estimate
               </p>
               <div className="grid grid-cols-2 gap-2 text-[13px] sm:grid-cols-4">
                 <div>
-                  <p className="text-neutral-400">Effect</p>
-                  <p className="font-medium text-neutral-800">{estimate.effectEstimate.toFixed(4)}</p>
+                  <p className="text-muted-foreground">Effect</p>
+                  <p className="font-medium text-foreground">{estimate.effectEstimate.toFixed(4)}</p>
                 </div>
                 <div>
-                  <p className="text-neutral-400">Std. Error</p>
-                  <p className="font-medium text-neutral-800">{estimate.standardError.toFixed(4)}</p>
+                  <p className="text-muted-foreground">Std. Error</p>
+                  <p className="font-medium text-foreground">{estimate.standardError.toFixed(4)}</p>
                 </div>
                 <div>
-                  <p className="text-neutral-400">95% CI</p>
-                  <p className="font-medium text-neutral-800">
+                  <p className="text-muted-foreground">95% CI</p>
+                  <p className="font-medium text-foreground">
                     [{estimate.ciLower.toFixed(4)}, {estimate.ciUpper.toFixed(4)}]
                   </p>
                 </div>
                 <div>
-                  <p className="text-neutral-400">p-value</p>
-                  <p className="font-medium text-neutral-800">{estimate.pValue.toFixed(4)}</p>
+                  <p className="text-muted-foreground">p-value</p>
+                  <p className="font-medium text-foreground">{estimate.pValue.toFixed(4)}</p>
                 </div>
               </div>
-              <p className="mt-2 text-[11px] text-neutral-400">
+              <p className="mt-2 text-[11px] text-muted-foreground">
                 {estimate.method} — {estimate.strataUsed} stratum/strata used.
               </p>
             </div>
 
             <div>
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                 Per-Stratum Breakdown
               </p>
               <div className="space-y-1.5">
@@ -1582,24 +1581,24 @@ function StratificationAnalysisSection({
                     key={s.stratumValue}
                     className="grid grid-cols-2 gap-2 text-[12px] sm:grid-cols-5 sm:items-center"
                   >
-                    <span className="font-medium text-neutral-700">{s.stratumValue}</span>
-                    <span className="text-neutral-500">
+                    <span className="font-medium text-foreground">{s.stratumValue}</span>
+                    <span className="text-muted-foreground">
                       control n={s.controlN}, variant n={s.variantN}
                     </span>
-                    <span className="text-neutral-500">
+                    <span className="text-muted-foreground">
                       {s.controlOutcomeRate != null ? `control: ${s.controlOutcomeRate.toFixed(4)}` : '—'}
                     </span>
-                    <span className="text-neutral-500">
+                    <span className="text-muted-foreground">
                       {s.variantOutcomeRate != null ? `variant: ${s.variantOutcomeRate.toFixed(4)}` : '—'}
                     </span>
-                    <span className="text-neutral-400">{!s.sufficient ? 'excluded (too few obs.)' : ''}</span>
+                    <span className="text-muted-foreground">{!s.sufficient ? 'excluded (too few obs.)' : ''}</span>
                   </div>
                 ))}
               </div>
             </div>
 
             {eligibility.sparseStratumValues.length > 0 && (
-              <p className="text-[11px] text-neutral-400">
+              <p className="text-[11px] text-muted-foreground">
                 Excluded for insufficient observations: {eligibility.sparseStratumValues.join(', ')}
               </p>
             )}
@@ -1659,18 +1658,18 @@ function RunInformationSection({ report }: { report: ExperimentReport }) {
   const usageValue = tokenParts.join(' · ');
 
   return (
-    <Card className="border-black/10 shadow-none">
+    <Card className="border-border shadow-none">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
-          <Info className="h-4 w-4 text-black" />
+          <Info className="h-4 w-4 text-foreground" />
           <CardTitle className="text-[15px] tracking-tight">Run Information</CardTitle>
           <Badge
             variant="outline"
             className={cn(
               'ml-auto text-[10px]',
-              rm.executionStatus === 'FAILED' && 'border-red-200 text-red-700',
-              rm.executionStatus === 'WARNING' && 'border-amber-200 text-amber-700',
-              (rm.executionStatus === 'SUCCESS' || rm.executionStatus === 'SKIPPED') && 'border-black/10 text-neutral-500'
+              rm.executionStatus === 'FAILED' && 'border-destructive/25 text-destructive',
+              rm.executionStatus === 'WARNING' && 'border-warning/25 text-warning',
+              (rm.executionStatus === 'SUCCESS' || rm.executionStatus === 'SKIPPED') && 'border-border text-muted-foreground'
             )}
           >
             {rm.executionStatus}
@@ -1680,20 +1679,20 @@ function RunInformationSection({ report }: { report: ExperimentReport }) {
       <CardContent>
         <div className="grid gap-2 sm:grid-cols-2">
           {rows.map((row) => (
-            <div key={row.label} className="rounded-md border border-black/10 bg-neutral-50 px-3 py-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">{row.label}</p>
-              <p className="mt-0.5 text-[13px] text-black">{row.value}</p>
+            <div key={row.label} className="rounded-md border border-border bg-secondary px-3 py-2">
+              <p className="text-[10px] font-medium text-muted-foreground">{row.label}</p>
+              <p className="mt-0.5 text-[13px] text-foreground">{row.value}</p>
             </div>
           ))}
           {usageValue && (
-            <div className="rounded-md border border-black/10 bg-neutral-50 px-3 py-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">LLM Usage</p>
-              <p className="mt-0.5 text-[13px] text-black">{usageValue}</p>
+            <div className="rounded-md border border-border bg-secondary px-3 py-2">
+              <p className="text-[10px] font-medium text-muted-foreground">LLM Usage</p>
+              <p className="mt-0.5 text-[13px] text-foreground">{usageValue}</p>
             </div>
           )}
         </div>
         {report.reportFallbackReason && (
-          <p className="mt-2.5 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          <p className="mt-2.5 flex items-start gap-2 rounded-md border border-warning/25 bg-warning/[0.08] px-3 py-2 text-xs text-warning">
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             {report.reportFallbackReason}
           </p>
@@ -1766,10 +1765,10 @@ export function ReportCard({ report, datasetName, experimentId, prompt }: Report
         const primaryStat = report.stats.find((s) => s.metric === report.hypothesis?.primaryMetric) ?? report.stats[0];
         return primaryStat ? <PrimaryMetricChart stat={primaryStat} /> : null;
       })()}
-      <Card className="border-black/10 shadow-none">
+      <Card className="border-border shadow-none">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
-            <FileBarChart className="h-4 w-4 text-black" />
+            <FileBarChart className="h-4 w-4 text-foreground" />
             <CardTitle className="text-[15px] tracking-tight">
               Statistical Results
             </CardTitle>
@@ -1793,42 +1792,42 @@ export function ReportCard({ report, datasetName, experimentId, prompt }: Report
 
           {report.bootstrapCiLower != null && report.bootstrapCiUpper != null && (
             <>
-              <Separator className="my-3 bg-black/10" />
-              <div className="rounded-md border border-black/10 bg-neutral-50 px-3 py-2.5">
+              <Separator className="my-3 bg-border" />
+              <div className="rounded-md border border-border bg-secondary px-3 py-2.5">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">
+                    <p className="text-[10px] font-medium text-muted-foreground">
                       Bootstrap Cross-check
                     </p>
-                    <p className="mt-0.5 text-[13px] text-black">
+                    <p className="mt-0.5 text-[13px] text-foreground">
                       95% CI for the difference: [{report.bootstrapCiLower.toFixed(4)}, {report.bootstrapCiUpper.toFixed(4)}]
                     </p>
                   </div>
-                  <Badge variant="outline" className="shrink-0 border-black/10 text-[10px] text-neutral-600">
+                  <Badge variant="outline" className="shrink-0 border-border text-[10px] text-muted-foreground">
                     {report.bootstrapIterations?.toLocaleString() ?? '10,000'} iterations
                   </Badge>
                 </div>
-                <p className="mt-1 text-[11px] text-neutral-500">
+                <p className="mt-1 text-[11px] text-muted-foreground">
                   Non-parametric cross-check; the primary hypothesis test and decision remain unchanged.
                 </p>
               </div>
             </>
           )}
 
-          <Separator className="my-3 bg-black/10" />
+          <Separator className="my-3 bg-border" />
           <div className="grid gap-2 sm:grid-cols-2">
-            <div className="rounded-md border border-black/10 bg-neutral-50 px-3 py-2.5">
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-neutral-400">
+            <div className="rounded-md border border-border bg-secondary px-3 py-2.5">
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
                 MDE
                 <InfoTooltip text="Minimum Detectable Effect — the smallest effect the experiment is designed to reliably detect at the chosen significance level and power. It is a design target, not the effect actually observed." />
               </span>
-              <p className="mt-0.5 text-[13px] text-black">{report.mde}</p>
+              <p className="mt-0.5 text-[13px] text-foreground">{report.mde}</p>
             </div>
-            <div className="rounded-md border border-black/10 bg-neutral-50 px-3 py-2.5">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">
+            <div className="rounded-md border border-border bg-secondary px-3 py-2.5">
+              <p className="text-[10px] font-medium text-muted-foreground">
                 Sample Size
               </p>
-              <p className="mt-0.5 text-[13px] text-black">
+              <p className="mt-0.5 text-[13px] text-foreground">
                 {report.sampleSizeNote}
               </p>
             </div>
@@ -1837,10 +1836,10 @@ export function ReportCard({ report, datasetName, experimentId, prompt }: Report
       </Card>
 
       {/* 6. Data Quality & Validity */}
-      <Card className="border-black/10 shadow-none">
+      <Card className="border-border shadow-none">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-black" />
+            <ShieldCheck className="h-4 w-4 text-foreground" />
             <CardTitle className="text-[15px] tracking-tight">
               Data Quality &amp; Assumptions
             </CardTitle>
@@ -1849,8 +1848,8 @@ export function ReportCard({ report, datasetName, experimentId, prompt }: Report
               className={cn(
                 'ml-auto text-[10px] font-semibold',
                 report.qualityChecks.length > 0 && report.qualityChecks.every((c) => c.passed)
-                  ? 'border-green-200 bg-green-50 text-green-700'
-                  : 'border-amber-200 bg-amber-50 text-amber-700'
+                  ? 'border-success/25 bg-success/[0.08] text-success'
+                  : 'border-warning/25 bg-warning/[0.08] text-warning'
               )}
             >
               {report.qualityChecks.length === 0
@@ -1903,10 +1902,10 @@ export function ReportCard({ report, datasetName, experimentId, prompt }: Report
       />
 
       {/* Supplementary: Strategic Recommendations */}
-      <Card className="border-black/10 shadow-none">
+      <Card className="border-border shadow-none">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
-            <Lightbulb className="h-4 w-4 text-black" />
+            <Lightbulb className="h-4 w-4 text-foreground" />
             <CardTitle className="text-[15px] tracking-tight">
               Strategic Recommendations &amp; Next Steps
             </CardTitle>
@@ -1914,27 +1913,27 @@ export function ReportCard({ report, datasetName, experimentId, prompt }: Report
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
               Recommendations
             </p>
             <ul className="space-y-1.5">
               {report.recommendations.map((r, i) => (
                 <li key={i} className="flex items-start gap-2.5 text-[13px]">
-                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-indigo-600" />
-                  <span className="text-neutral-700">{r}</span>
+                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary" />
+                  <span className="text-foreground">{r}</span>
                 </li>
               ))}
             </ul>
           </div>
           <div>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
               Next Steps
             </p>
             <ul className="space-y-1.5">
               {report.nextSteps.map((s, i) => (
                 <li key={i} className="flex items-start gap-2.5 text-[13px]">
-                  <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-neutral-400" />
-                  <span className="text-neutral-700">{s}</span>
+                  <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <span className="text-foreground">{s}</span>
                 </li>
               ))}
             </ul>

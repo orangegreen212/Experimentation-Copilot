@@ -32,18 +32,18 @@ export function SrmPanel({ qualityChecks }: { qualityChecks: QualityCheck[] }) {
   const parsed = parseSrmDetail(srmCheck.detail);
 
   return (
-    <Card className="border-black/10 shadow-none">
+    <Card className="border-border shadow-none">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
-          <Scale className="h-4 w-4 text-black" />
+          <Scale className="h-4 w-4 text-foreground" />
           <CardTitle className="text-[15px] tracking-tight">Assignment Quality</CardTitle>
           <Badge
             variant="outline"
             className={cn(
               'ml-auto text-[10px] font-semibold',
               srmCheck.passed
-                ? 'border-green-200 bg-green-50 text-green-700'
-                : 'border-red-200 bg-red-50 text-red-700'
+                ? 'border-success/25 bg-success/[0.08] text-success'
+                : 'border-destructive/25 bg-destructive/[0.08] text-destructive'
             )}
           >
             {srmCheck.passed ? (
@@ -63,13 +63,13 @@ export function SrmPanel({ qualityChecks }: { qualityChecks: QualityCheck[] }) {
             <SplitRow label="Control" expected={parsed.expectedControl} observed={parsed.observedControl} ok={srmCheck.passed} />
             <SplitRow label="Treatment" expected={parsed.expectedVariant} observed={parsed.observedVariant} ok={srmCheck.passed} />
             {!srmCheck.passed && (
-              <p className="mt-2 text-[12px] text-red-600">
+              <p className="mt-2 text-[12px] text-destructive">
                 The experiment may be affected by assignment imbalance.
               </p>
             )}
           </div>
         ) : (
-          <p className="text-[12px] text-neutral-500">{srmCheck.detail}</p>
+          <p className="text-[12px] text-muted-foreground">{srmCheck.detail}</p>
         )}
       </CardContent>
     </Card>
@@ -88,17 +88,17 @@ function SplitRow({
   ok: boolean;
 }) {
   return (
-    <div className="rounded-md border border-black/10 bg-neutral-50 px-3 py-2">
+    <div className="rounded-md border border-border bg-secondary px-3 py-2">
       <div className="flex items-center justify-between text-[12px]">
-        <span className="font-medium text-black">{label}</span>
-        <span className="text-neutral-500">
-          expected {expected}% · observed{' '}
-          <span className={cn('font-semibold', ok ? 'text-neutral-700' : 'text-red-600')}>{observed}%</span>
+        <span className="font-medium text-foreground">{label}</span>
+        <span className="text-muted-foreground">
+          expected <span className="font-data">{expected}%</span> · observed{' '}
+          <span className={cn('font-data font-semibold', ok ? 'text-foreground' : 'text-destructive')}>{observed}%</span>
         </span>
       </div>
-      <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-neutral-200">
+      <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-border-strong">
         <div
-          className={cn('h-full rounded-full', ok ? 'bg-indigo-500' : 'bg-red-500')}
+          className={cn('h-full rounded-full', ok ? 'bg-primary' : 'bg-destructive')}
           style={{ width: `${Math.min(observed, 100)}%` }}
         />
       </div>

@@ -36,10 +36,10 @@ export function PrimaryMetricChart({ stat }: { stat: StatResult }) {
   const variantPct = (variant / maxVal) * 100;
 
   return (
-    <Card className="border-black/10 shadow-none">
+    <Card className="border-border shadow-none">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
-          <BarChart3 className="h-4 w-4 text-black" />
+          <BarChart3 className="h-4 w-4 text-foreground" />
           <CardTitle className="text-[15px] tracking-tight">{stat.metric} by Variant</CardTitle>
         </div>
         <CardDescription>Control vs. Treatment, with the effect's confidence interval below</CardDescription>
@@ -48,33 +48,33 @@ export function PrimaryMetricChart({ stat }: { stat: StatResult }) {
         {/* Bar chart */}
         <div className="flex items-end gap-8 px-2">
           <div className="flex flex-1 flex-col items-center gap-2">
-            <span className="text-[15px] font-semibold text-black">{stat.control}</span>
+            <span className="text-[15px] font-semibold text-foreground">{stat.control}</span>
             <div className="flex h-32 w-full items-end justify-center">
               <div
-                className="w-16 rounded-t-md bg-neutral-300"
+                className="w-16 rounded-t-md bg-border-strong"
                 style={{ height: `${Math.max(controlPct, 3)}%` }}
               />
             </div>
-            <span className="text-[11px] font-medium uppercase tracking-wide text-neutral-500">Control</span>
+            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Control</span>
           </div>
           <div className="flex flex-1 flex-col items-center gap-2">
-            <span className="text-[15px] font-semibold text-black">{stat.variant}</span>
+            <span className="text-[15px] font-semibold text-foreground">{stat.variant}</span>
             <div className="flex h-32 w-full items-end justify-center">
               <div
                 className={
-                  'w-16 rounded-t-md ' + (stat.significant ? 'bg-indigo-600' : 'bg-neutral-300')
+                  'w-16 rounded-t-md ' + (stat.significant ? 'bg-primary' : 'bg-border-strong')
                 }
                 style={{ height: `${Math.max(variantPct, 3)}%` }}
               />
             </div>
-            <span className="text-[11px] font-medium uppercase tracking-wide text-neutral-500">Treatment</span>
+            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Treatment</span>
           </div>
         </div>
 
         {/* Confidence interval plot */}
         {ciLower != null && ciUpper != null && (
           <div>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
               Treatment effect — {stat.delta} ({stat.significant ? 'statistically significant' : 'not significant'})
             </p>
             <CiPlot lower={ciLower} upper={ciUpper} pValue={stat.pValue} />
@@ -103,26 +103,26 @@ function CiPlot({ lower, upper, pValue }: { lower: number; upper: number; pValue
       <div className="relative h-8">
         {/* zero reference line */}
         <div
-          className="absolute top-0 h-full w-px bg-neutral-300"
+          className="absolute top-0 h-full w-px bg-border-strong"
           style={{ left: `${zeroPct}%` }}
         />
         {/* CI track */}
         <div
-          className="absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-indigo-200"
+          className="absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-primary/30"
           style={{ left: `${lowerPct}%`, width: `${Math.max(upperPct - lowerPct, 0.5)}%` }}
         />
         {/* midpoint dot */}
         <div
-          className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-indigo-600 shadow"
+          className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-primary shadow"
           style={{ left: `${midPct}%` }}
         />
       </div>
-      <div className="mt-1 flex items-center justify-between text-[10px] text-neutral-400">
+      <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
         <span>{lower >= 0 ? '+' : ''}{lower.toFixed(2)}</span>
         <span>0</span>
         <span>{upper >= 0 ? '+' : ''}{upper.toFixed(2)}</span>
       </div>
-      <p className="mt-1 text-[11px] text-neutral-500">
+      <p className="mt-1 text-[11px] text-muted-foreground">
         95% CI [{lower >= 0 ? '+' : ''}{lower.toFixed(2)}, {upper >= 0 ? '+' : ''}{upper.toFixed(2)}] · p-value {pValue < 0.001 ? '<0.001' : pValue.toFixed(3)}
       </p>
     </div>

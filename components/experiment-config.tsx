@@ -84,10 +84,10 @@ export function ExperimentConfig({ settings, onChange }: ExperimentConfigProps) 
   }, [freeModels.length]);
 
   return (
-    <Card className="border-black/10 shadow-none">
+    <Card className="border-border shadow-none">
       <CardHeader>
         <div className="flex items-center gap-2">
-          <Wand2 className="h-4 w-4 text-black" />
+          <Wand2 className="h-4 w-4 text-foreground" />
           <CardTitle className="text-[15px] tracking-tight">Experiment Configuration</CardTitle>
         </div>
         <CardDescription>Applies to this evaluation only</CardDescription>
@@ -99,14 +99,14 @@ export function ExperimentConfig({ settings, onChange }: ExperimentConfigProps) 
           checked={settings.cuped}
           onChange={(v) => update({ cuped: v })}
         />
-        <div className="h-px bg-black/10" />
+        <div className="h-px bg-border" />
         <ToggleRow
           label="Bootstrap Resampling"
           description="Non-parametric confidence intervals via 10,000 bootstrap iterations."
           checked={settings.bootstrap}
           onChange={(v) => update({ bootstrap: v })}
         />
-        <div className="h-px bg-black/10" />
+        <div className="h-px bg-border" />
 
         {/* Confidence level / statistical power — locked in for this
             run only (same contract as CUPED/bootstrap/model above);
@@ -120,11 +120,11 @@ export function ExperimentConfig({ settings, onChange }: ExperimentConfigProps) 
             selections at all. */}
         <div className="flex items-start justify-between gap-4 py-3.5">
           <div className="min-w-0">
-            <p className="flex items-center gap-1.5 text-[13px] font-medium text-black">
+            <p className="flex items-center gap-1.5 text-[13px] font-medium text-foreground">
               <Target className="h-3.5 w-3.5" />
               Confidence Level
             </p>
-            <p className="text-xs text-neutral-400">
+            <p className="text-xs text-muted-foreground">
               Significance threshold for this run&apos;s hypothesis test and guardrails.
             </p>
           </div>
@@ -132,7 +132,7 @@ export function ExperimentConfig({ settings, onChange }: ExperimentConfigProps) 
             value={settings.confidenceLevel != null ? String(Math.round(settings.confidenceLevel * 100)) : '__default__'}
             onValueChange={(v) => update({ confidenceLevel: v === '__default__' ? undefined : Number(v) / 100 })}
           >
-            <SelectTrigger className="h-8 w-[140px] shrink-0 border-black/15 text-xs">
+            <SelectTrigger className="h-8 w-[140px] shrink-0 border-border-strong text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -143,14 +143,14 @@ export function ExperimentConfig({ settings, onChange }: ExperimentConfigProps) 
             </SelectContent>
           </Select>
         </div>
-        <div className="h-px bg-black/10" />
+        <div className="h-px bg-border" />
         <div className="flex items-start justify-between gap-4 py-3.5">
           <div className="min-w-0">
-            <p className="flex items-center gap-1.5 text-[13px] font-medium text-black">
+            <p className="flex items-center gap-1.5 text-[13px] font-medium text-foreground">
               <Gauge className="h-3.5 w-3.5" />
               Statistical Power
             </p>
-            <p className="text-xs text-neutral-400">
+            <p className="text-xs text-muted-foreground">
               Target power used for this run&apos;s MDE / required-sample-size calculation.
             </p>
           </div>
@@ -158,7 +158,7 @@ export function ExperimentConfig({ settings, onChange }: ExperimentConfigProps) 
             value={settings.statisticalPower != null ? String(Math.round(settings.statisticalPower * 100)) : '__default__'}
             onValueChange={(v) => update({ statisticalPower: v === '__default__' ? undefined : Number(v) / 100 })}
           >
-            <SelectTrigger className="h-8 w-[140px] shrink-0 border-black/15 text-xs">
+            <SelectTrigger className="h-8 w-[140px] shrink-0 border-border-strong text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -169,7 +169,7 @@ export function ExperimentConfig({ settings, onChange }: ExperimentConfigProps) 
             </SelectContent>
           </Select>
         </div>
-        <div className="h-px bg-black/10" />
+        <div className="h-px bg-border" />
 
         {/* Model selector — server-curated list only (GET /system/models),
             filtered to free (":free") models only per product decision:
@@ -177,14 +177,14 @@ export function ExperimentConfig({ settings, onChange }: ExperimentConfigProps) 
             engine's compute, never the LLM interpretation layer. */}
         <div className="flex items-start justify-between gap-4 py-3.5">
           <div className="min-w-0">
-            <p className="flex items-center gap-1.5 text-[13px] font-medium text-black">
+            <p className="flex items-center gap-1.5 text-[13px] font-medium text-foreground">
               <Cpu className="h-3.5 w-3.5" />
               LLM Model
-              <Badge variant="outline" className="border-black/10 text-[10px] font-normal text-neutral-500">
+              <Badge variant="outline" className="border-border text-[10px] font-normal text-muted-foreground">
                 Free models only
               </Badge>
             </p>
-            <p className="text-xs text-neutral-400">
+            <p className="text-xs text-muted-foreground">
               {modelsError
                 ? 'Could not load the model list.'
                 : 'Free OpenRouter models may queue or fail to respond under load — switch here if that happens.'}
@@ -192,14 +192,14 @@ export function ExperimentConfig({ settings, onChange }: ExperimentConfigProps) 
           </div>
           <div className="shrink-0">
             {modelsError && (
-              <span className="text-xs text-neutral-400">Unavailable</span>
+              <span className="text-xs text-muted-foreground">Unavailable</span>
             )}
             {!modelsError && freeModels.length > 0 ? (
               <Select
                 value={settings.model && freeModels.some((m) => m.id === settings.model) ? settings.model : freeModels[0].id}
                 onValueChange={(v) => update({ model: v })}
               >
-                <SelectTrigger className="h-8 w-[260px] border-black/15 text-xs">
+                <SelectTrigger className="h-8 w-[260px] border-border-strong text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -212,7 +212,7 @@ export function ExperimentConfig({ settings, onChange }: ExperimentConfigProps) 
               </Select>
             ) : (
               !modelsError && (
-                <span className="text-xs text-neutral-400">No free models configured</span>
+                <span className="text-xs text-muted-foreground">No free models configured</span>
               )
             )}
           </div>
@@ -236,8 +236,8 @@ function ToggleRow({
   return (
     <div className="flex items-start justify-between gap-4 py-3.5">
       <div className="min-w-0">
-        <p className="text-[13px] font-medium text-black">{label}</p>
-        <p className="text-xs text-neutral-400">{description}</p>
+        <p className="text-[13px] font-medium text-foreground">{label}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
       </div>
       <Switch checked={checked} onCheckedChange={onChange} className="mt-1 shrink-0" />
     </div>

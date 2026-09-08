@@ -34,11 +34,11 @@ export function FollowUpChat({ messages, onSend, isLoading = false }: FollowUpCh
   };
 
   return (
-    <div id="follow-up-chat" className="rounded-lg border border-black/10 bg-white">
-      <div className="flex items-center gap-2 border-b border-black/10 px-4 py-3">
-        <MessageSquare className="h-4 w-4 text-black" />
-        <h3 className="text-[13px] font-semibold text-black">Follow-up Q&amp;A</h3>
-        <span className="text-xs text-neutral-400">
+    <div id="follow-up-chat" className="rounded-lg border border-border bg-surface">
+      <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+        <MessageSquare className="h-4 w-4 text-foreground" />
+        <h3 className="text-[13px] font-semibold text-foreground">Follow-up Q&amp;A</h3>
+        <span className="text-xs text-muted-foreground">
           Ask a question about this report...
         </span>
       </div>
@@ -53,8 +53,8 @@ export function FollowUpChat({ messages, onSend, isLoading = false }: FollowUpCh
               <div
                 className={
                   m.role === 'user'
-                    ? 'max-w-[85%] rounded-lg rounded-br-sm bg-indigo-600 px-3 py-2 text-[13px] text-white'
-                    : 'max-w-[85%] rounded-lg rounded-bl-sm bg-neutral-100 px-3 py-2 text-[13px] text-neutral-700'
+                    ? 'max-w-[85%] rounded-lg rounded-br-sm bg-primary px-3 py-2 text-[13px] text-white'
+                    : 'max-w-[85%] rounded-lg rounded-bl-sm bg-secondary px-3 py-2 text-[13px] text-foreground'
                 }
               >
                 {m.content}
@@ -63,10 +63,10 @@ export function FollowUpChat({ messages, onSend, isLoading = false }: FollowUpCh
           ))}
           {isLoading && (
             <div className="flex justify-start">
-              <div className="flex items-center gap-1 rounded-lg rounded-bl-sm bg-neutral-100 px-3 py-2">
-                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-neutral-400 [animation-delay:-0.3s]" />
-                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-neutral-400 [animation-delay:-0.15s]" />
-                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-neutral-400" />
+              <div className="flex items-center gap-1 rounded-lg rounded-bl-sm bg-secondary px-3 py-2">
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/50 [animation-delay:-0.3s]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/50 [animation-delay:-0.15s]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/50" />
               </div>
             </div>
           )}
@@ -84,7 +84,7 @@ export function FollowUpChat({ messages, onSend, isLoading = false }: FollowUpCh
             }
           }}
           placeholder="e.g. What would the result look like with CUPED applied?"
-          className="min-h-[40px] resize-none border-black/10 placeholder:text-neutral-400"
+          className="min-h-[40px] resize-none border-border placeholder:text-muted-foreground"
           rows={1}
           disabled={isLoading}
         />

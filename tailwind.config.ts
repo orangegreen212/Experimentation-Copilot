@@ -40,6 +40,15 @@ const config: Config = {
       colors: {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
+        surface: {
+          DEFAULT: 'hsl(var(--surface))',
+          raised: 'hsl(var(--surface-raised))',
+        },
+        copilot: {
+          DEFAULT: 'hsl(var(--copilot))',
+          foreground: 'hsl(var(--copilot-foreground))',
+          bg: 'hsl(var(--copilot-bg))',
+        },
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
@@ -77,6 +86,7 @@ const config: Config = {
           foreground: 'hsl(var(--warning-foreground))',
         },
         border: 'hsl(var(--border))',
+        'border-strong': 'hsl(var(--border-strong))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
         chart: {

@@ -2,67 +2,104 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+  Design system — Experiment Review Copilot
+  ------------------------------------------
+  Palette: warm-neutral paper background (not cool SaaS grey-blue),
+  near-black ink text, a single restrained accent — deep ink-cobalt
+  ("Signal") used only for interactive/primary elements — plus a
+  separate muted amber ("Copilot") reserved for the AI-interpretation
+  layer so it reads as a distinct voice from deterministic stats.
+  Semantic colors are desaturated, not candy-bright.
+*/
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 9%;
+    --background: 40 14% 97%;
+    --surface: 0 0% 100%;
+    --surface-raised: 40 20% 99%;
+    --foreground: 220 15% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
+    --card-foreground: 220 15% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
-    --primary: 243 75% 59%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 240 20% 97%;
-    --secondary-foreground: 240 10% 15%;
-    --muted: 240 20% 96%;
-    --muted-foreground: 240 6% 46%;
-    --accent: 243 75% 96%;
-    --accent-foreground: 243 75% 40%;
-    --destructive: 0 72% 42%;
-    --destructive-foreground: 0 0% 100%;
-    --success: 152 55% 40%;
-    --success-foreground: 0 0% 100%;
-    --warning: 32 92% 50%;
-    --warning-foreground: 0 0% 100%;
-    --border: 240 14% 90%;
-    --input: 240 14% 90%;
-    --ring: 243 75% 59%;
-    --chart-1: 243 75% 59%;
-    --chart-2: 152 55% 40%;
-    --chart-3: 0 72% 42%;
-    --chart-4: 240 10% 50%;
-    --chart-5: 240 10% 70%;
-    --radius: 0.9rem;
+    --popover-foreground: 220 15% 10%;
+
+    --primary: 213 42% 26%;
+    --primary-foreground: 40 20% 98%;
+
+    --secondary: 40 12% 94%;
+    --secondary-foreground: 220 15% 18%;
+    --muted: 40 10% 93%;
+    --muted-foreground: 220 8% 42%;
+    --accent: 213 30% 94%;
+    --accent-foreground: 213 42% 26%;
+
+    --copilot: 34 45% 38%;
+    --copilot-foreground: 40 20% 98%;
+    --copilot-bg: 38 40% 95%;
+
+    --destructive: 8 55% 40%;
+    --destructive-foreground: 40 20% 98%;
+    --success: 158 38% 28%;
+    --success-foreground: 40 20% 98%;
+    --warning: 32 55% 34%;
+    --warning-foreground: 40 20% 98%;
+
+    --border: 40 12% 88%;
+    --border-strong: 220 10% 78%;
+    --input: 40 12% 88%;
+    --ring: 213 42% 26%;
+
+    --chart-1: 213 42% 26%;
+    --chart-2: 158 38% 32%;
+    --chart-3: 34 55% 46%;
+    --chart-4: 220 8% 55%;
+    --chart-5: 8 45% 45%;
+
+    --radius: 0.5rem;
   }
+
   .dark {
-    --background: 0 0% 7%;
-    --foreground: 0 0% 96%;
-    --card: 0 0% 9%;
-    --card-foreground: 0 0% 96%;
-    --popover: 0 0% 9%;
-    --popover-foreground: 0 0% 96%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14%;
-    --secondary-foreground: 0 0% 96%;
-    --muted: 0 0% 14%;
-    --muted-foreground: 0 0% 64%;
-    --accent: 0 0% 16%;
-    --accent-foreground: 0 0% 96%;
-    --destructive: 0 62% 45%;
-    --destructive-foreground: 0 0% 100%;
-    --success: 142 64% 42%;
-    --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
-    --border: 0 0% 18%;
-    --input: 0 0% 18%;
-    --ring: 0 0% 98%;
-    --chart-1: 0 0% 96%;
-    --chart-2: 142 64% 42%;
-    --chart-3: 0 62% 45%;
-    --chart-4: 0 0% 64%;
-    --chart-5: 0 0% 80%;
+    --background: 220 16% 8%;
+    --surface: 220 15% 11%;
+    --surface-raised: 220 15% 13%;
+    --foreground: 40 15% 94%;
+    --card: 220 15% 11%;
+    --card-foreground: 40 15% 94%;
+    --popover: 220 15% 11%;
+    --popover-foreground: 40 15% 94%;
+
+    --primary: 210 55% 72%;
+    --primary-foreground: 220 20% 10%;
+
+    --secondary: 220 12% 16%;
+    --secondary-foreground: 40 15% 92%;
+    --muted: 220 12% 16%;
+    --muted-foreground: 220 8% 62%;
+    --accent: 213 25% 20%;
+    --accent-foreground: 210 55% 78%;
+
+    --copilot: 34 55% 62%;
+    --copilot-foreground: 220 20% 10%;
+    --copilot-bg: 34 25% 16%;
+
+    --destructive: 8 55% 58%;
+    --destructive-foreground: 220 20% 10%;
+    --success: 158 40% 52%;
+    --success-foreground: 220 20% 10%;
+    --warning: 34 55% 55%;
+    --warning-foreground: 220 20% 10%;
+
+    --border: 220 12% 20%;
+    --border-strong: 220 10% 32%;
+    --input: 220 12% 20%;
+    --ring: 210 55% 72%;
+
+    --chart-1: 210 55% 72%;
+    --chart-2: 158 40% 52%;
+    --chart-3: 34 55% 62%;
+    --chart-4: 220 8% 62%;
+    --chart-5: 8 50% 62%;
   }
 }
 
@@ -70,31 +107,48 @@
   * {
     @apply border-border;
   }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
-    letter-spacing: -0.011em;
-    /* Bigger baseline: most of the UI's copy is tighter than
-       comfortable for extended reading (report text, history rows,
-       form labels). Bumping the root size scales every rem-based
-       Tailwind class (text-xs/sm/base/lg/...) app-wide. */
-    font-size: 16px;
+    letter-spacing: -0.008em;
+    font-size: 15.5px;
     line-height: 1.55;
+  }
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: 2px;
   }
 }
 
-/* Readability pass: a large share of the UI uses fixed-px arbitrary
-   Tailwind classes (text-[10px] .. text-[15px]) instead of the
-   rem-based scale above, so they don't benefit from the root
-   font-size bump. Raise each fixed size by ~2px app-wide here
-   instead of hand-editing every component. */
+/* Numeric / tabular figures get their own type treatment — a
+   monospace stack with tabular numerals. This is the app's one
+   deliberate typographic device: it marks a value as "measured
+   data" the way italics mark emphasis, and it's what makes stat
+   tables and effect sizes actually line up in columns. */
+@layer utilities {
+  .font-data {
+    font-family: ui-monospace, 'SF Mono', 'Cascadia Mono', 'JetBrains Mono',
+      Consolas, 'Roboto Mono', monospace;
+    font-feature-settings: 'tnum' 1, 'zero' 1;
+    font-variant-numeric: tabular-nums slashed-zero;
+    letter-spacing: -0.01em;
+  }
+}
+
+/* Readability pass for legacy fixed-px arbitrary sizes still present
+   in some older components — kept for compatibility while the
+   redesign migrates components to the type-scale utilities below. */
 @layer utilities {
   .text-\[9px\] { font-size: 11px !important; }
-  .text-\[10px\] { font-size: 12px !important; }
-  .text-\[11px\] { font-size: 13px !important; }
-  .text-\[12px\] { font-size: 14px !important; }
-  .text-\[13px\] { font-size: 15px !important; }
-  .text-\[15px\] { font-size: 17px !important; }
+  .text-\[10px\] { font-size: 11px !important; }
+  .text-\[11px\] { font-size: 12px !important; }
+  .text-\[12px\] { font-size: 13px !important; }
+  .text-\[13px\] { font-size: 14px !important; }
+  .text-\[15px\] { font-size: 16px !important; }
 }
 
 @layer utilities {
@@ -105,11 +159,13 @@
     animation: fade-in 0.35s ease-out both;
   }
   .animate-slide-up {
-    animation: slide-up 0.35s ease-out both;
+    animation: slide-up 0.3s ease-out both;
   }
   .animate-pulse-soft {
     animation: pulse-soft 1.6s ease-in-out infinite;
   }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
 
 @keyframes fade-in {

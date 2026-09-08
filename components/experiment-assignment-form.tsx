@@ -48,7 +48,7 @@ const UNIT_OPTIONS: { value: RandomizationUnit; label: string }[] = [
 // Distinct fills for up to a handful of treatment arms; Control always
 // renders in neutral gray regardless of position (see the render loop
 // below), so this palette only needs to cover non-control variants.
-const SEGMENT_COLORS = ['bg-indigo-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500', 'bg-sky-500'];
+const SEGMENT_COLORS = ['bg-primary', 'bg-chart-2', 'bg-chart-3', 'bg-chart-5', 'bg-copilot'];
 
 export function ExperimentAssignmentForm({ definition, onSaved }: ExperimentAssignmentFormProps) {
   const [randomizationUnit, setRandomizationUnit] = useState<RandomizationUnit>(
@@ -83,10 +83,10 @@ export function ExperimentAssignmentForm({ definition, onSaved }: ExperimentAssi
   let treatmentIndex = 0;
 
   return (
-    <Card className="border-black/10 shadow-none">
+    <Card className="border-border shadow-none">
       <CardHeader className="space-y-0">
         <div className="flex items-center gap-2">
-          <Shuffle className="h-4 w-4 text-black" />
+          <Shuffle className="h-4 w-4 text-foreground" />
           <div>
             <CardTitle className="text-[15px] tracking-tight">Assignment</CardTitle>
             <CardDescription>
@@ -98,14 +98,14 @@ export function ExperimentAssignmentForm({ definition, onSaved }: ExperimentAssi
       </CardHeader>
       <CardContent className="space-y-4 pt-0">
         <div className="max-w-xs">
-          <Label className="text-xs font-medium text-neutral-500">Randomization unit</Label>
+          <Label className="text-xs font-medium text-muted-foreground">Randomization unit</Label>
           <div className="mt-1.5 flex items-center gap-2">
             <Select
               value={randomizationUnit}
               onValueChange={(v) => handleUnitChange(v as RandomizationUnit)}
               disabled={saving}
             >
-              <SelectTrigger className="h-8 border-black/10 text-sm">
+              <SelectTrigger className="h-8 border-border text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -116,23 +116,23 @@ export function ExperimentAssignmentForm({ definition, onSaved }: ExperimentAssi
                 ))}
               </SelectContent>
             </Select>
-            {saving && <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-neutral-400" />}
+            {saving && <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" />}
           </div>
-          {saveError && <p className="mt-1.5 text-xs text-red-600">{saveError}</p>}
+          {saveError && <p className="mt-1.5 text-xs text-destructive">{saveError}</p>}
         </div>
 
         <div>
-          <Label className="text-xs font-medium text-neutral-500">Expected allocation</Label>
+          <Label className="text-xs font-medium text-muted-foreground">Expected allocation</Label>
           {definition.variants.length === 0 ? (
-            <p className="mt-1.5 text-sm text-neutral-400">
+            <p className="mt-1.5 text-sm text-muted-foreground">
               No variants configured yet — add them in the Variants section above.
             </p>
           ) : (
             <div className="mt-2 space-y-2">
-              <div className="flex h-3 w-full overflow-hidden rounded-full bg-neutral-100">
+              <div className="flex h-3 w-full overflow-hidden rounded-full bg-secondary">
                 {definition.variants.map((v) => {
                   const color = v.isControl
-                    ? 'bg-neutral-400'
+                    ? 'bg-muted-foreground/50'
                     : SEGMENT_COLORS[treatmentIndex++ % SEGMENT_COLORS.length];
                   return (
                     <div
@@ -144,27 +144,27 @@ export function ExperimentAssignmentForm({ definition, onSaved }: ExperimentAssi
                   );
                 })}
               </div>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-neutral-500">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                 {definition.variants.map((v, i) => (
                   <span key={v.id} className="flex items-center gap-1.5">
                     <span
                       className={cn(
                         'h-2 w-2 shrink-0 rounded-full',
                         v.isControl
-                          ? 'bg-neutral-400'
+                          ? 'bg-muted-foreground/50'
                           : SEGMENT_COLORS[
                               definition.variants.slice(0, i).filter((x) => !x.isControl).length %
                                 SEGMENT_COLORS.length
                             ]
                       )}
                     />
-                    {v.name} <span className="font-medium text-neutral-700">{v.allocationPct}%</span>
+                    {v.name} <span className="font-medium text-foreground">{v.allocationPct}%</span>
                   </span>
                 ))}
                 <span
                   className={cn(
                     'ml-auto font-medium',
-                    Math.abs(totalAllocation - 100) <= 0.5 ? 'text-neutral-500' : 'text-red-600'
+                    Math.abs(totalAllocation - 100) <= 0.5 ? 'text-muted-foreground' : 'text-destructive'
                   )}
                 >
                   Total: {totalAllocation.toFixed(1)}%

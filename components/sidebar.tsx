@@ -32,7 +32,7 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { id: 'library', label: 'Library', icon: FolderKanban },
-  { id: 'overview', label: 'New Analysis', icon: FlaskConical },
+  { id: 'overview', label: 'New analysis', icon: FlaskConical },
   { id: 'experiments', label: 'Experiments', icon: History },
   { id: 'datasets', label: 'Datasets', icon: Database },
   { id: 'metrics', label: 'Metrics', icon: BarChart3 },
@@ -42,11 +42,11 @@ const NAV: NavItem[] = [
 function Brand() {
   return (
     <div className="flex items-center gap-2.5">
-      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-indigo-600 text-white">
-        <FlaskConical className="h-4 w-4" />
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[7px] bg-primary text-primary-foreground">
+        <FlaskConical className="h-3.5 w-3.5" />
       </div>
       <div className="min-w-0">
-        <h1 className="truncate text-[13px] font-semibold leading-tight tracking-tight text-black">
+        <h1 className="truncate text-[13px] font-semibold leading-tight tracking-tight text-foreground">
           Experiment Review Copilot
         </h1>
       </div>
@@ -56,7 +56,7 @@ function Brand() {
 
 function NavList({ view, onSelect }: { view: View; onSelect: (v: View) => void }) {
   return (
-    <nav className="flex flex-col gap-0.5 px-3 py-4">
+    <nav className="flex flex-col gap-0.5 px-3 py-3">
       {NAV.map((item) => {
         const Icon = item.icon;
         const active = view === item.id;
@@ -65,19 +65,23 @@ function NavList({ view, onSelect }: { view: View; onSelect: (v: View) => void }
             key={item.id}
             onClick={() => !item.comingSoon && onSelect(item.id)}
             disabled={item.comingSoon}
+            aria-current={active ? 'page' : undefined}
             className={cn(
-              'group flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors',
+              'group relative flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] font-medium transition-colors',
               active && !item.comingSoon
-                ? 'bg-indigo-600 text-white'
+                ? 'bg-accent text-accent-foreground'
                 : item.comingSoon
-                ? 'cursor-not-allowed text-neutral-300'
-                : 'text-neutral-600 hover:bg-neutral-100 hover:text-black'
+                ? 'cursor-not-allowed text-muted-foreground/50'
+                : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
             )}
           >
-            <Icon className="h-4 w-4 shrink-0" />
+            {active && !item.comingSoon && (
+              <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-primary" />
+            )}
+            <Icon className="h-[15px] w-[15px] shrink-0" strokeWidth={2} />
             <span className="flex-1 text-left">{item.label}</span>
             {item.comingSoon && (
-              <span className="rounded border border-neutral-200 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-neutral-400">
+              <span className="rounded border border-border px-1 py-0.5 text-[10px] font-medium text-muted-foreground/70">
                 Soon
               </span>
             )}
@@ -127,24 +131,24 @@ function UserBlock() {
   const label = name || email;
 
   return (
-    <div className="mt-auto flex items-center gap-2.5 border-t border-black/10 px-5 py-3.5">
+    <div className="mt-auto flex items-center gap-2.5 border-t border-border px-4 py-3">
       {avatarUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={avatarUrl} alt="" className="h-8 w-8 shrink-0 rounded-full" />
+        <img src={avatarUrl} alt="" className="h-7 w-7 shrink-0 rounded-full" />
       ) : (
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[11px] font-semibold text-indigo-700">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-semibold text-accent-foreground">
           {initialsFor(label)}
         </div>
       )}
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[12px] font-medium text-black">{label}</p>
-        <p className="truncate text-[10px] text-neutral-400">{email}</p>
+        <p className="truncate text-[12.5px] font-medium text-foreground">{label}</p>
+        <p className="truncate text-[11px] text-muted-foreground">{email}</p>
       </div>
       <form action="/auth/signout" method="post">
         <button
           type="submit"
           title="Sign out"
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-neutral-400 hover:bg-neutral-100 hover:text-black"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
         >
           <LogOut className="h-3.5 w-3.5" />
         </button>
@@ -164,12 +168,12 @@ export function Sidebar({ view, onViewChange }: SidebarProps) {
   return (
     <>
       {/* Mobile top bar — replaces the sidebar below the md breakpoint */}
-      <div className="flex h-14 shrink-0 items-center justify-between border-b border-black/10 bg-white px-4 md:hidden">
+      <div className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-surface px-4 md:hidden">
         <Brand />
         <button
           onClick={() => setMobileOpen(true)}
           aria-label="Open navigation"
-          className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100"
+          className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary"
         >
           <Menu className="h-5 w-5" />
         </button>
@@ -179,25 +183,25 @@ export function Sidebar({ view, onViewChange }: SidebarProps) {
       {mobileOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div
-            className="absolute inset-0 bg-black/30"
+            className="absolute inset-0 bg-foreground/30"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="absolute left-0 top-0 flex h-full w-72 max-w-[80vw] flex-col bg-white shadow-xl animate-fade-in">
-            <div className="flex items-center justify-between border-b border-black/10 px-5 py-5">
+          <aside className="absolute left-0 top-0 flex h-full w-72 max-w-[80vw] flex-col bg-surface shadow-xl animate-fade-in">
+            <div className="flex items-center justify-between border-b border-border px-4 py-4">
               <Brand />
               <button
                 onClick={() => setMobileOpen(false)}
                 aria-label="Close navigation"
-                className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100"
+                className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
             <NavList view={view} onSelect={handleSelect} />
             <UserBlock />
-            <div className="border-t border-black/10 px-5 py-4">
-              <p className="text-[10px] leading-relaxed text-neutral-400">
-                Plan-and-Execute agent. LLM plans &amp; interprets; stats executed in
+            <div className="border-t border-border px-4 py-3">
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                Plan-and-Execute agent. The model plans &amp; interprets; statistics run in
                 Python nodes.
               </p>
             </div>
@@ -206,19 +210,19 @@ export function Sidebar({ view, onViewChange }: SidebarProps) {
       )}
 
       {/* Desktop sidebar */}
-      <aside className="hidden h-full w-60 shrink-0 flex-col border-r border-black/10 bg-white md:flex">
-        <div className="flex flex-col gap-2.5 border-b border-black/10 px-5 py-5">
+      <aside className="hidden h-full w-[220px] shrink-0 flex-col border-r border-border bg-surface md:flex">
+        <div className="flex flex-col gap-2 border-b border-border px-4 py-4">
           <Brand />
-          <span className="inline-flex w-fit items-center rounded border border-black/10 bg-neutral-50 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-neutral-500">
-            AI Decision Support System
+          <span className="inline-flex w-fit items-center rounded-full border border-border bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+            AI decision support
           </span>
         </div>
 
         <NavList view={view} onSelect={handleSelect} />
         <UserBlock />
-        <div className="border-t border-black/10 px-5 py-4">
-          <p className="text-[10px] leading-relaxed text-neutral-400">
-            Plan-and-Execute agent. LLM plans &amp; interprets; stats executed in
+        <div className="border-t border-border px-4 py-3">
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
+            Plan-and-Execute agent. The model plans &amp; interprets; statistics run in
             Python nodes.
           </p>
         </div>

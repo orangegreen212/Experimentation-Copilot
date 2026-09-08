@@ -77,19 +77,20 @@ export default function Home() {
   const copy = VIEW_COPY[view];
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-white md:flex-row">
+    <div className="flex h-screen flex-col overflow-hidden bg-surface md:flex-row">
       <Sidebar view={view} onViewChange={setView} />
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="hidden h-14 shrink-0 items-center justify-between border-b border-black/10 bg-white px-6 md:flex">
+        <header className="hidden h-14 shrink-0 items-center justify-between border-b border-border bg-surface-raised px-6 md:flex">
           <div>
-            <h2 className="text-[13px] font-semibold tracking-tight text-black">{copy.title}</h2>
-            <p className="text-xs text-neutral-400">{copy.subtitle}</p>
+            <h2 className="text-[14px] font-semibold tracking-tight text-foreground">{copy.title}</h2>
+            <p className="text-[12px] text-muted-foreground">{copy.subtitle}</p>
           </div>
         </header>
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 2xl:px-10">
+          <div className="mx-auto w-full max-w-[1600px]">
           <div className="mb-4 md:hidden">
-            <h2 className="text-[15px] font-semibold tracking-tight text-black">{copy.title}</h2>
-            <p className="text-xs text-neutral-400">{copy.subtitle}</p>
+            <h2 className="text-[15px] font-semibold tracking-tight text-foreground">{copy.title}</h2>
+            <p className="text-xs text-muted-foreground">{copy.subtitle}</p>
           </div>
           {view === 'library' && (
             <ExperimentLibrary
@@ -118,6 +119,7 @@ export default function Home() {
           )}
           {view === 'metrics' && <MetricsView />}
           {view === 'settings' && <SettingsView />}
+          </div>
         </div>
       </main>
     </div>

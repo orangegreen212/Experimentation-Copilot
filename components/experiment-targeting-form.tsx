@@ -71,7 +71,7 @@ function ChipListField({
 
   return (
     <div>
-      <Label className="text-xs font-medium text-neutral-500">{label}</Label>
+      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
       <div className="mt-1.5 flex gap-2">
         <Input
           value={draft}
@@ -83,10 +83,10 @@ function ChipListField({
             }
           }}
           placeholder={placeholder}
-          className="h-8 border-black/10 text-sm placeholder:text-neutral-400"
+          className="h-8 border-border text-sm placeholder:text-muted-foreground"
           maxLength={100}
         />
-        <Button type="button" variant="outline" size="sm" onClick={add} className="h-8 shrink-0 border-black/15 px-2">
+        <Button type="button" variant="outline" size="sm" onClick={add} className="h-8 shrink-0 border-border-strong px-2">
           <Plus className="h-3.5 w-3.5" />
         </Button>
       </div>
@@ -95,11 +95,11 @@ function ChipListField({
           {values.map((v) => (
             <span
               key={v}
-              className="flex items-center gap-1 rounded-full border border-black/10 bg-neutral-50 px-2.5 py-1 text-xs text-black"
+              className="flex items-center gap-1 rounded-full border border-border bg-secondary px-2.5 py-1 text-xs text-foreground"
             >
               {v}
               <button type="button" onClick={() => remove(v)} aria-label={`Remove ${v}`}>
-                <X className="h-3 w-3 text-neutral-400 hover:text-black" />
+                <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
               </button>
             </span>
           ))}
@@ -147,10 +147,10 @@ export function ExperimentTargetingForm({ definition, onSaved }: ExperimentTarge
   };
 
   return (
-    <Card className="border-black/10 shadow-none">
+    <Card className="border-border shadow-none">
       <CardHeader className="space-y-0">
         <div className="flex items-center gap-2">
-          <Crosshair className="h-4 w-4 text-black" />
+          <Crosshair className="h-4 w-4 text-foreground" />
           <div>
             <CardTitle className="text-[15px] tracking-tight">Target audience</CardTitle>
             <CardDescription>Configuration metadata, not a production targeting engine.</CardDescription>
@@ -181,22 +181,22 @@ export function ExperimentTargetingForm({ definition, onSaved }: ExperimentTarge
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <Label className="text-xs font-medium text-neutral-500">User type</Label>
+            <Label className="text-xs font-medium text-muted-foreground">User type</Label>
             <Input
               value={targeting.userType ?? ''}
               onChange={(e) => patch({ userType: e.target.value === '' ? null : e.target.value })}
               placeholder="e.g. New users"
-              className="mt-1.5 h-8 border-black/10 text-sm placeholder:text-neutral-400"
+              className="mt-1.5 h-8 border-border text-sm placeholder:text-muted-foreground"
               maxLength={100}
             />
           </div>
           <div>
-            <Label className="text-xs font-medium text-neutral-500">Acquisition channel</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Acquisition channel</Label>
             <Input
               value={targeting.acquisitionChannel ?? ''}
               onChange={(e) => patch({ acquisitionChannel: e.target.value === '' ? null : e.target.value })}
               placeholder="e.g. Paid Search"
-              className="mt-1.5 h-8 border-black/10 text-sm placeholder:text-neutral-400"
+              className="mt-1.5 h-8 border-border text-sm placeholder:text-muted-foreground"
               maxLength={100}
             />
           </div>
@@ -204,19 +204,19 @@ export function ExperimentTargetingForm({ definition, onSaved }: ExperimentTarge
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <Label className="text-xs font-medium text-neutral-500">
-              User segment <span className="font-normal text-neutral-400">(optional)</span>
+            <Label className="text-xs font-medium text-muted-foreground">
+              User segment <span className="font-normal text-muted-foreground">(optional)</span>
             </Label>
             <Input
               value={targeting.userSegment ?? ''}
               onChange={(e) => patch({ userSegment: e.target.value === '' ? null : e.target.value })}
               placeholder="e.g. High-value customers"
-              className="mt-1.5 h-8 border-black/10 text-sm placeholder:text-neutral-400"
+              className="mt-1.5 h-8 border-border text-sm placeholder:text-muted-foreground"
               maxLength={100}
             />
           </div>
           <div>
-            <Label className="text-xs font-medium text-neutral-500">Traffic allocation %</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Traffic allocation %</Label>
             <Input
               type="number"
               inputMode="decimal"
@@ -230,19 +230,19 @@ export function ExperimentTargetingForm({ definition, onSaved }: ExperimentTarge
                 })
               }
               placeholder="e.g. 20"
-              className="mt-1.5 h-8 border-black/10 text-sm placeholder:text-neutral-400"
+              className="mt-1.5 h-8 border-border text-sm placeholder:text-muted-foreground"
             />
           </div>
         </div>
 
         {invalid && (
-          <p className="text-xs text-red-600">Traffic allocation must be between 0 and 100.</p>
+          <p className="text-xs text-destructive">Traffic allocation must be between 0 and 100.</p>
         )}
 
-        <div className="flex items-center justify-end gap-2 border-t border-black/5 pt-3">
-          {saveError && <p className="mr-auto text-xs text-red-600">{saveError}</p>}
+        <div className="flex items-center justify-end gap-2 border-t border-border pt-3">
+          {saveError && <p className="mr-auto text-xs text-destructive">{saveError}</p>}
           {dirty && !saving && (
-            <Button size="sm" variant="ghost" onClick={handleDiscard} className="text-neutral-500">
+            <Button size="sm" variant="ghost" onClick={handleDiscard} className="text-muted-foreground">
               Discard changes
             </Button>
           )}
@@ -250,7 +250,7 @@ export function ExperimentTargetingForm({ definition, onSaved }: ExperimentTarge
             size="sm"
             onClick={handleSave}
             disabled={!dirty || saving || invalid}
-            className="gap-1.5 bg-indigo-600 text-white hover:bg-indigo-700"
+            className="gap-1.5 bg-primary text-white hover:bg-primary/90"
           >
             {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             Save targeting

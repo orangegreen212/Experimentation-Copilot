@@ -90,13 +90,13 @@ export function DatasetClassificationCard({ dataset }: DatasetClassificationCard
   ];
 
   return (
-    <div className="rounded-lg border border-black/10 bg-white px-4 py-3 animate-slide-up">
-      <p className="mb-3 text-[13px] font-medium text-black">Dataset Classification</p>
+    <div className="rounded-lg border border-border bg-surface px-4 py-3 animate-slide-up">
+      <p className="mb-3 text-[13px] font-medium text-foreground">Dataset Classification</p>
       <dl className="grid grid-cols-1 gap-x-6 gap-y-2.5 sm:grid-cols-2">
         {rows.map((row) => (
           <div key={row.label} className="flex flex-col gap-0.5">
             <dt
-              className="text-[10px] font-medium uppercase tracking-wide text-neutral-400 cursor-help"
+              className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground cursor-help"
               title={row.hint}
             >
               {row.label}
@@ -104,8 +104,8 @@ export function DatasetClassificationCard({ dataset }: DatasetClassificationCard
             <dd
               className={
                 row.isCandidate && row.value === 'None detected'
-                  ? 'text-[13px] text-neutral-400'
-                  : 'text-[13px] text-neutral-800'
+                  ? 'text-[13px] text-muted-foreground'
+                  : 'text-[13px] text-foreground'
               }
             >
               {row.value}

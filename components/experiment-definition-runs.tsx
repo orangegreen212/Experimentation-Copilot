@@ -68,17 +68,17 @@ interface ExperimentDefinitionRunsProps {
 }
 
 const CONFIDENCE_STYLES: Record<ConfidenceLevel, string> = {
-  HIGH: 'border-green-200 bg-green-50 text-green-700',
-  MEDIUM: 'border-black/10 bg-neutral-100 text-neutral-600',
-  LOW: 'border-red-200 bg-red-50 text-red-700',
+  HIGH: 'border-success/25 bg-success/[0.08] text-success',
+  MEDIUM: 'border-border bg-secondary text-muted-foreground',
+  LOW: 'border-destructive/25 bg-destructive/[0.08] text-destructive',
 };
 
 const DECISION_STYLES: Record<string, string> = {
-  GO: 'border-green-200 bg-green-50 text-green-700',
-  GO_WITH_CAUTION: 'border-amber-200 bg-amber-50 text-amber-700',
-  NO_GO: 'border-red-200 bg-red-50 text-red-700',
-  INCONCLUSIVE: 'border-neutral-200 bg-neutral-50 text-neutral-500',
-  INVALID: 'border-red-200 bg-red-50 text-red-700',
+  GO: 'border-success/25 bg-success/[0.08] text-success',
+  GO_WITH_CAUTION: 'border-warning/25 bg-warning/[0.08] text-warning',
+  NO_GO: 'border-destructive/25 bg-destructive/[0.08] text-destructive',
+  INCONCLUSIVE: 'border-border bg-secondary text-muted-foreground',
+  INVALID: 'border-destructive/25 bg-destructive/[0.08] text-destructive',
 };
 
 function runLabel(index: number, total: number): string {
@@ -231,10 +231,10 @@ export function ExperimentDefinitionRuns({ definition, settings, onDefinitionUpd
   };
 
   return (
-    <Card className="border-black/10 shadow-none">
+    <Card className="border-border shadow-none">
       <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
         <div className="flex items-center gap-2">
-          <HistoryIcon className="h-4 w-4 text-black" />
+          <HistoryIcon className="h-4 w-4 text-foreground" />
           <div>
             <CardTitle className="text-[15px] tracking-tight">Analysis Runs</CardTitle>
             <CardDescription>
@@ -248,26 +248,26 @@ export function ExperimentDefinitionRuns({ definition, settings, onDefinitionUpd
           size="sm"
           onClick={handleRunAnalysis}
           disabled={!hasDataSource || running}
-          className="shrink-0 gap-1.5 bg-indigo-600 text-white hover:bg-indigo-700"
+          className="shrink-0 gap-1.5 bg-primary text-white hover:bg-primary/90"
         >
           {running ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FlaskConical className="h-3.5 w-3.5" />}
           Run analysis
         </Button>
       </CardHeader>
       <CardContent className="space-y-3 pt-0">
-        {runError && <p className="text-xs text-red-600">{runError}</p>}
-        {loadError && <p className="text-xs text-red-600">{loadError}</p>}
-        {deleteError && <p className="text-xs text-red-600">{deleteError}</p>}
+        {runError && <p className="text-xs text-destructive">{runError}</p>}
+        {loadError && <p className="text-xs text-destructive">{loadError}</p>}
+        {deleteError && <p className="text-xs text-destructive">{deleteError}</p>}
 
         {loading && (
-          <div className="flex items-center gap-2 py-4 text-xs text-neutral-400">
+          <div className="flex items-center gap-2 py-4 text-xs text-muted-foreground">
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
             Loading past runs...
           </div>
         )}
 
         {!loading && runs.length === 0 && (
-          <div className="rounded-md border border-dashed border-black/15 bg-neutral-50/60 py-6 text-center text-[13px] text-neutral-400">
+          <div className="rounded-md border border-dashed border-border-strong bg-secondary/60 py-6 text-center text-[13px] text-muted-foreground">
             No analysis runs yet for this experiment.
           </div>
         )}
@@ -284,12 +284,12 @@ export function ExperimentDefinitionRuns({ definition, settings, onDefinitionUpd
                   onClick={() => setSelectedId(active ? null : run.experimentId)}
                   className={cn(
                     'flex w-full items-center justify-between gap-3 rounded-lg border p-3 pr-10 text-left transition-colors',
-                    active ? 'border-black/20 bg-neutral-50' : 'border-black/10 hover:bg-neutral-50'
+                    active ? 'border-border-strong bg-secondary' : 'border-border hover:bg-secondary'
                   )}
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-[13px] font-medium text-black">{runLabel(i, runs.length)}</p>
-                    <p className="mt-0.5 truncate text-xs text-neutral-400">
+                    <p className="truncate text-[13px] font-medium text-foreground">{runLabel(i, runs.length)}</p>
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
                       {new Date(run.createdAt).toLocaleString()} · {run.primaryMetric}
                     </p>
                   </div>
@@ -307,7 +307,7 @@ export function ExperimentDefinitionRuns({ definition, settings, onDefinitionUpd
                       {run.confidence}
                     </Badge>
                     <ChevronRight
-                      className={cn('h-3.5 w-3.5 text-neutral-300 transition-transform', active && 'rotate-90')}
+                      className={cn('h-3.5 w-3.5 text-muted-foreground/50 transition-transform', active && 'rotate-90')}
                     />
                   </div>
                 </button>
@@ -322,8 +322,8 @@ export function ExperimentDefinitionRuns({ definition, settings, onDefinitionUpd
                   className={cn(
                     'absolute right-2 top-3 rounded-md p-1.5 transition-colors',
                     isConfirming
-                      ? 'bg-red-50 text-red-600'
-                      : 'text-neutral-300 hover:bg-red-50 hover:text-red-600 group-hover:text-neutral-400'
+                      ? 'bg-destructive/[0.08] text-destructive'
+                      : 'text-muted-foreground/50 hover:bg-destructive/[0.08] hover:text-destructive group-hover:text-muted-foreground'
                   )}
                 >
                   {isDeleting ? (
@@ -333,7 +333,7 @@ export function ExperimentDefinitionRuns({ definition, settings, onDefinitionUpd
                   )}
                 </button>
                 {isConfirming && !isDeleting && (
-                  <p className="mt-1 text-xs font-medium text-red-600">
+                  <p className="mt-1 text-xs font-medium text-destructive">
                     Click the trash icon again to permanently delete this run
                   </p>
                 )}
@@ -352,14 +352,14 @@ export function ExperimentDefinitionRuns({ definition, settings, onDefinitionUpd
             reflects/disables against the CURRENT status rather than
             assuming a fresh decision is always being made. */}
         {runs.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 border-t border-black/5 pt-3">
-            <span className="mr-1 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+          <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+            <span className="mr-1 text-[11px] font-medium text-muted-foreground">
               Decision
             </span>
             <Button
               size="sm"
               variant="outline"
-              className="h-7 gap-1.5 border-green-200 text-xs text-green-700 hover:bg-green-50"
+              className="h-7 gap-1.5 border-success/25 text-xs text-success hover:bg-success/[0.08]"
               disabled={decisionSaving !== null || definition.status === 'shipped'}
               onClick={() => handleDecision('shipped')}
             >
@@ -373,7 +373,7 @@ export function ExperimentDefinitionRuns({ definition, settings, onDefinitionUpd
             <Button
               size="sm"
               variant="outline"
-              className="h-7 gap-1.5 text-xs text-neutral-600"
+              className="h-7 gap-1.5 text-xs text-muted-foreground"
               disabled={decisionSaving !== null || definition.status === 'completed'}
               onClick={() => handleDecision('completed')}
             >
@@ -387,7 +387,7 @@ export function ExperimentDefinitionRuns({ definition, settings, onDefinitionUpd
             <Button
               size="sm"
               variant="outline"
-              className="h-7 gap-1.5 text-xs text-neutral-600"
+              className="h-7 gap-1.5 text-xs text-muted-foreground"
               disabled={decisionSaving !== null || definition.status === 'ready'}
               onClick={() => handleDecision('ready')}
             >
@@ -398,13 +398,13 @@ export function ExperimentDefinitionRuns({ definition, settings, onDefinitionUpd
               )}
               Keep iterating
             </Button>
-            {decisionError && <span className="text-xs text-red-600">{decisionError}</span>}
+            {decisionError && <span className="text-xs text-destructive">{decisionError}</span>}
           </div>
         )}
 
-        {detailError && <p className="text-xs text-red-600">{detailError}</p>}
+        {detailError && <p className="text-xs text-destructive">{detailError}</p>}
         {detailLoading && (
-          <div className="flex items-center gap-2 py-4 text-xs text-neutral-400">
+          <div className="flex items-center gap-2 py-4 text-xs text-muted-foreground">
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
             Loading report...
           </div>
@@ -418,7 +418,7 @@ export function ExperimentDefinitionRuns({ definition, settings, onDefinitionUpd
               experimentId={detail.experimentId}
               prompt={detail.userPrompt}
             />
-            {chatError && <p className="text-xs text-red-600">{chatError}</p>}
+            {chatError && <p className="text-xs text-destructive">{chatError}</p>}
             <FollowUpChat messages={messages} onSend={handleFollowUp} isLoading={isChatLoading} />
           </div>
         )}

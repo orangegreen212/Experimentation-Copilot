@@ -497,13 +497,13 @@ export function WorkspaceView({ onSessionSaved, settings, onSettingsChange }: Wo
         />
       )}
       {!dataset && showSetupSkipped && experimentPlan && (
-        <div className="flex items-center justify-between rounded-lg border border-black/10 bg-neutral-50 px-4 py-2.5 text-[13px] text-black">
+        <div className="flex items-center justify-between rounded-lg border border-border bg-secondary px-4 py-2.5 text-[13px] text-foreground">
           <span>
             Experiment plan captured — it will pre-fill the hypothesis once you pick a dataset below.
           </span>
           <button
             type="button"
-            className="text-neutral-400 underline hover:text-black"
+            className="text-muted-foreground underline hover:text-foreground"
             onClick={() => setShowSetupSkipped(false)}
           >
             Edit
@@ -513,7 +513,7 @@ export function WorkspaceView({ onSessionSaved, settings, onSettingsChange }: Wo
       {!dataset && !experimentPlan && showSetupSkipped && (
         <button
           type="button"
-          className="text-left text-xs text-neutral-400 underline hover:text-black"
+          className="text-left text-xs text-muted-foreground underline hover:text-foreground"
           onClick={() => setShowSetupSkipped(false)}
         >
           Plan this experiment first
@@ -522,18 +522,18 @@ export function WorkspaceView({ onSessionSaved, settings, onSettingsChange }: Wo
 
       {/* Upload Zone */}
       <div
-        className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-black/15 bg-white py-12 text-center"
+        className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border-strong bg-surface py-12 text-center"
         onDragOver={(e) => e.preventDefault()}
         onDrop={onDrop}
       >
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-100 text-black">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-foreground">
           <UploadCloud className="h-5 w-5" />
         </div>
         <div>
-          <p className="text-[13px] font-medium text-black">
+          <p className="text-[13px] font-medium text-foreground">
             Drop your CSV or Excel file here, or click to browse
           </p>
-          <p className="text-xs text-neutral-400">
+          <p className="text-xs text-muted-foreground">
             Aggregated or raw A/B test data — the classifier will detect the
             format
           </p>
@@ -544,7 +544,7 @@ export function WorkspaceView({ onSessionSaved, settings, onSettingsChange }: Wo
             size="sm"
             onClick={() => fileInputRef.current?.click()}
             disabled={isClassifying}
-            className="border-black/15"
+            className="border-border-strong"
           >
             <FileSpreadsheet className="mr-1.5 h-4 w-4" />
             Upload File
@@ -572,21 +572,21 @@ export function WorkspaceView({ onSessionSaved, settings, onSettingsChange }: Wo
           Renders nothing if the backend has none registered or the
           fetch failed (see the useEffect above). */}
       {realDatasets.length > 0 && (
-        <Collapsible className="rounded-lg border border-black/10 bg-white">
+        <Collapsible className="rounded-lg border border-border bg-surface">
           <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 text-left">
             <div className="flex items-center gap-2">
-              <Database className="h-4 w-4 text-neutral-500" />
-              <span className="text-[13px] font-medium text-black">
+              <Database className="h-4 w-4 text-muted-foreground" />
+              <span className="text-[13px] font-medium text-foreground">
                 Real Experiment Datasets
               </span>
               <Badge variant="outline" className="text-[10px]">
                 {realDatasets.length}
               </Badge>
             </div>
-            <ChevronDown className="h-4 w-4 text-neutral-400 transition-transform data-[state=open]:rotate-180" />
+            <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform data-[state=open]:rotate-180" />
           </CollapsibleTrigger>
-          <CollapsibleContent className="border-t border-black/10 px-4 py-3">
-            <p className="mb-3 text-xs text-neutral-400">
+          <CollapsibleContent className="border-t border-border px-4 py-3">
+            <p className="mb-3 text-xs text-muted-foreground">
               Run the Copilot against a genuine published randomized experiment
               instead of a synthetic demo.
             </p>
@@ -596,12 +596,12 @@ export function WorkspaceView({ onSessionSaved, settings, onSettingsChange }: Wo
                   key={ds.key}
                   onClick={() => loadRealDataset(ds.key)}
                   disabled={isClassifying}
-                  className="flex items-center gap-2.5 rounded-md border border-black/10 px-3 py-2 text-left text-[13px] text-black transition-colors hover:bg-neutral-50 disabled:opacity-50"
+                  className="flex items-center gap-2.5 rounded-md border border-border px-3 py-2 text-left text-[13px] text-foreground transition-colors hover:bg-secondary disabled:opacity-50"
                 >
                   {isClassifying ? (
-                    <Loader2 className="h-4 w-4 shrink-0 animate-spin text-neutral-400" />
+                    <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
                   ) : (
-                    <FileSpreadsheet className="h-4 w-4 shrink-0 text-neutral-500" />
+                    <FileSpreadsheet className="h-4 w-4 shrink-0 text-muted-foreground" />
                   )}
                   {ds.label}
                 </button>
@@ -613,29 +613,29 @@ export function WorkspaceView({ onSessionSaved, settings, onSettingsChange }: Wo
 
       {/* Error banner */}
       {error && (
-        <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50/50 px-4 py-3 animate-slide-up">
-          <XCircle className="h-4 w-4 shrink-0 text-red-600" />
-          <p className="text-[13px] text-red-700">{error}</p>
+        <div className="flex items-center gap-3 rounded-lg border border-destructive/25 bg-destructive/[0.08] px-4 py-3 animate-slide-up">
+          <XCircle className="h-4 w-4 shrink-0 text-destructive" />
+          <p className="text-[13px] text-destructive">{error}</p>
         </div>
       )}
 
       {/* Classifier Banner */}
       {dataset && (
-        <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50/50 px-4 py-3 animate-slide-up">
-          <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />
+        <div className="flex items-center gap-3 rounded-lg border border-success/25 bg-success/[0.08] px-4 py-3 animate-slide-up">
+          <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />
           <div className="flex flex-1 flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">
-            <span className="font-medium text-black">
+            <span className="font-medium text-foreground">
               Detected: {dataset.type}
             </span>
-            <span className="text-neutral-500">{dataset.variants} Variants</span>
-            <span className="text-neutral-500">
+            <span className="text-muted-foreground">{dataset.variants} Variants</span>
+            <span className="text-muted-foreground">
               {dataset.users.toLocaleString()} Users
             </span>
-            <span className="text-neutral-500">
+            <span className="text-muted-foreground">
               Metric: {dataset.metricLabel}
             </span>
           </div>
-          <Badge variant="outline" className="gap-1 text-[10px] border-black/10 text-neutral-500">
+          <Badge variant="outline" className="gap-1 text-[10px] border-border text-muted-foreground">
             <FileSpreadsheet className="h-3 w-3" />
             {fileName}
           </Badge>
@@ -652,21 +652,21 @@ export function WorkspaceView({ onSessionSaved, settings, onSettingsChange }: Wo
           a primary dataset is loaded; merged deterministically onto it
           via enrich_with_assignment when the analysis runs. */}
       {dataset && (
-        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-black/10 bg-white px-4 py-3 animate-slide-up">
-          <span className="text-[13px] font-medium text-black">
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface px-4 py-3 animate-slide-up">
+          <span className="text-[13px] font-medium text-foreground">
             Assignment file (optional)
           </span>
-          <span className="text-xs text-neutral-400">
+          <span className="text-xs text-muted-foreground">
             user_id | variant — only needed if the primary dataset has no variant column
           </span>
           <div className="ml-auto flex items-center gap-2">
             {assignmentFileName ? (
               <>
-                <Badge variant="outline" className="gap-1 text-[10px] border-black/10 text-neutral-500">
+                <Badge variant="outline" className="gap-1 text-[10px] border-border text-muted-foreground">
                   <FileSpreadsheet className="h-3 w-3" />
                   {assignmentFileName}
                 </Badge>
-                <Button variant="outline" size="sm" onClick={clearAssignmentFile} className="border-black/15">
+                <Button variant="outline" size="sm" onClick={clearAssignmentFile} className="border-border-strong">
                   Remove
                 </Button>
               </>
@@ -676,7 +676,7 @@ export function WorkspaceView({ onSessionSaved, settings, onSettingsChange }: Wo
                 size="sm"
                 onClick={() => assignmentFileInputRef.current?.click()}
                 disabled={isClassifyingAssignment}
-                className="border-black/15"
+                className="border-border-strong"
               >
                 {isClassifyingAssignment ? (
                   <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
@@ -697,9 +697,9 @@ export function WorkspaceView({ onSessionSaved, settings, onSettingsChange }: Wo
         </div>
       )}
       {assignmentError && (
-        <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50/50 px-4 py-3 animate-slide-up">
-          <XCircle className="h-4 w-4 shrink-0 text-red-600" />
-          <p className="text-[13px] text-red-700">{assignmentError}</p>
+        <div className="flex items-center gap-3 rounded-lg border border-destructive/25 bg-destructive/[0.08] px-4 py-3 animate-slide-up">
+          <XCircle className="h-4 w-4 shrink-0 text-destructive" />
+          <p className="text-[13px] text-destructive">{assignmentError}</p>
         </div>
       )}
 
@@ -715,11 +715,11 @@ export function WorkspaceView({ onSessionSaved, settings, onSettingsChange }: Wo
           in the Dataset Classification card below (a naming-heuristic
           SUGGESTION) — selecting here is what actually gets evaluated. */}
       {dataset && dataset.availableMetrics && dataset.availableMetrics.length > 1 && (
-        <Card className="border-black/10 shadow-none">
+        <Card className="border-border shadow-none">
           <CardContent className="space-y-2 py-4">
             <div>
-              <p className="text-[13px] font-medium text-black">Guardrail Metrics</p>
-              <p className="text-xs text-neutral-400">
+              <p className="text-[13px] font-medium text-foreground">Guardrail Metrics</p>
+              <p className="text-xs text-muted-foreground">
                 Optional — pick metrics to check for unintended regressions alongside the primary
                 metric. Leave unselected to skip guardrail evaluation.
               </p>
@@ -734,7 +734,7 @@ export function WorkspaceView({ onSessionSaved, settings, onSettingsChange }: Wo
                   return (
                     <label
                       key={metric}
-                      className="flex cursor-pointer items-center gap-1.5 text-[13px] text-black"
+                      className="flex cursor-pointer items-center gap-1.5 text-[13px] text-foreground"
                     >
                       <Checkbox
                         checked={checked}
@@ -749,7 +749,7 @@ export function WorkspaceView({ onSessionSaved, settings, onSettingsChange }: Wo
                       {isCandidate && (
                         <Badge
                           variant="outline"
-                          className="border-black/10 text-[10px] text-neutral-500"
+                          className="border-border text-[10px] text-muted-foreground"
                         >
                           suggested
                         </Badge>
@@ -764,27 +764,27 @@ export function WorkspaceView({ onSessionSaved, settings, onSettingsChange }: Wo
 
       {/* Prompt Input */}
       {dataset && (
-        <div className="rounded-lg border border-black/10 bg-white p-4 animate-slide-up">
-          <label className="mb-2 block text-[13px] font-medium text-black">
+        <div className="rounded-lg border border-border bg-surface p-4 animate-slide-up">
+          <label className="mb-2 block text-[13px] font-medium text-foreground">
             What would you like to evaluate?
           </label>
           <Textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="e.g. Evaluate the checkout redesign experiment — is the variant ready to ship?"
-            className="min-h-[60px] resize-none border-black/10 placeholder:text-neutral-400"
+            className="min-h-[60px] resize-none border-border placeholder:text-muted-foreground"
             rows={2}
           />
           <div className="mt-3 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs text-neutral-400">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
               {settings.cuped && (
-                <Badge variant="outline" className="gap-1 text-[10px] border-black/10 text-neutral-600">
+                <Badge variant="outline" className="gap-1 text-[10px] border-border text-muted-foreground">
                   <Wand2 className="h-3 w-3" />
                   CUPED
                 </Badge>
               )}
               {settings.bootstrap && (
-                <Badge variant="outline" className="gap-1 text-[10px] border-black/10 text-neutral-600">
+                <Badge variant="outline" className="gap-1 text-[10px] border-border text-muted-foreground">
                   <Wand2 className="h-3 w-3" />
                   Bootstrap
                 </Badge>
@@ -812,12 +812,12 @@ export function WorkspaceView({ onSessionSaved, settings, onSettingsChange }: Wo
 
       {/* Execution Stepper */}
       {(phase === 'running' || phase === 'done') && (
-        <div className="rounded-lg border border-black/10 bg-white p-4 animate-fade-in">
-          <p className="mb-3 text-[13px] font-semibold text-black">
+        <div className="rounded-lg border border-border bg-surface p-4 animate-fade-in">
+          <p className="mb-3 text-[13px] font-semibold text-foreground">
             Execution Pipeline
           </p>
           {phase === 'running' ? (
-            <div className="flex items-center gap-2 py-6 text-[13px] text-neutral-500">
+            <div className="flex items-center gap-2 py-6 text-[13px] text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
               Running Classifier → Planner → Capability nodes → Decision Engine...
             </div>
