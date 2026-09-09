@@ -100,8 +100,16 @@ class SegmentDimensionResult(CamelModel):
     segment_effects: list[SegmentEffect]
     multiple_testing_method: str
     reliable_segment_values: list[str]
-    has_reliable_segment_effect: bool
-    has_heterogeneous_effect: bool
+    # Default `False` (rather than making this required) so older stored
+    # reports — persisted before this field existed on the schema — can
+    # still be read back instead of raising a pydantic ValidationError.
+    # `False` here means "not established as reliable", the same
+    # "not assessed"-leaning convention already used for
+    # `heterogeneity_test_method`/`heterogeneity_p_value` above — it is
+    # a backward-compat default for old rows, not a claim that the
+    # original analysis found no reliable segment effect.
+    has_reliable_segment_effect: bool = False
+    has_heterogeneous_effect: bool = False
     heterogeneity_test_method: str | None = None
     heterogeneity_p_value: float | None = None
 
