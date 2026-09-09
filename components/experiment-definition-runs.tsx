@@ -42,7 +42,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ReportCard } from '@/components/report-card';
-import { FollowUpChat } from '@/components/follow-up-chat';
 import {
   analyzeExperimentDefinition,
   deleteExperiment,
@@ -412,14 +411,14 @@ export function ExperimentDefinitionRuns({ definition, settings, onDefinitionUpd
 
         {!detailLoading && detail && (
           <div className="space-y-4 pt-2">
+            {chatError && <p className="text-xs text-destructive">{chatError}</p>}
             <ReportCard
               report={detail.report}
               datasetName={detail.datasetName}
               experimentId={detail.experimentId}
               prompt={detail.userPrompt}
+              chat={{ messages, onSend: handleFollowUp, isLoading: isChatLoading }}
             />
-            {chatError && <p className="text-xs text-destructive">{chatError}</p>}
-            <FollowUpChat messages={messages} onSend={handleFollowUp} isLoading={isChatLoading} />
           </div>
         )}
       </CardContent>

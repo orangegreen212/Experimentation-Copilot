@@ -5,22 +5,22 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 
 function segmentBadgeClass(significant: boolean, isReliable: boolean) {
-  if (isReliable) return 'border-green-200 bg-green-50 text-green-700';
-  if (significant) return 'border-amber-200 bg-amber-50 text-amber-700';
-  return 'border-black/10 bg-neutral-50 text-neutral-500';
+  if (isReliable) return 'border-success/25 bg-success/[0.08] text-success';
+  if (significant) return 'border-warning/25 bg-warning/[0.08] text-warning';
+  return 'border-border bg-secondary text-muted-foreground';
 }
 
 function SegmentDimensionCard({ dim }: { dim: SegmentDimensionResult }) {
   return (
-    <div className="rounded-md border border-black/10 p-3">
+    <div className="rounded-md border border-border p-3">
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <p className="text-[13px] font-semibold text-black">{dim.dimension}</p>
+        <p className="text-[13px] font-semibold text-foreground">{dim.dimension}</p>
         {dim.hasHeterogeneousEffect && (
-          <Badge variant="outline" className="border-amber-200 bg-amber-50 text-[10px] text-amber-700">
+          <Badge variant="outline" className="border-warning/25 bg-warning/[0.08] text-[10px] text-warning">
             Heterogeneous effect detected
           </Badge>
         )}
-        <span className="ml-auto text-[10px] text-neutral-400">{dim.multipleTestingMethod}</span>
+        <span className="ml-auto text-[10px] text-muted-foreground">{dim.multipleTestingMethod}</span>
       </div>
       <div className="space-y-2">
         {dim.segmentEffects.map((seg) => {
@@ -29,10 +29,10 @@ function SegmentDimensionCard({ dim }: { dim: SegmentDimensionResult }) {
             return (
               <div
                 key={seg.segmentValue}
-                className="flex items-center justify-between gap-3 rounded-md border border-black/10 bg-neutral-50 px-3 py-2 text-[12px]"
+                className="flex items-center justify-between gap-3 rounded-md border border-border bg-secondary px-3 py-2 text-[12px]"
               >
-                <span className="font-medium text-black">{seg.segmentValue}</span>
-                <span className="text-neutral-400">
+                <span className="font-medium text-foreground">{seg.segmentValue}</span>
+                <span className="text-muted-foreground">
                   Insufficient sample (n={seg.controlN}/{seg.variantN})
                   {seg.skipDetail ? ` — ${seg.skipDetail}` : ''}
                 </span>
@@ -43,34 +43,34 @@ function SegmentDimensionCard({ dim }: { dim: SegmentDimensionResult }) {
           return (
             <div
               key={seg.segmentValue}
-              className="grid grid-cols-12 items-center gap-2 rounded-md border border-black/10 px-3 py-2 text-[12px]"
+              className="grid grid-cols-12 items-center gap-2 rounded-md border border-border px-3 py-2 text-[12px]"
             >
               <div className="col-span-12 sm:col-span-3">
-                <span className="font-medium text-black">{seg.segmentValue}</span>
-                <p className="text-[10px] text-neutral-400">
+                <span className="font-medium text-foreground">{seg.segmentValue}</span>
+                <p className="text-[10px] text-muted-foreground">
                   n={seg.controlN}/{seg.variantN}
                 </p>
               </div>
               {s ? (
                 <>
                   <div className="col-span-6 sm:col-span-2">
-                    <span className="text-[10px] uppercase text-neutral-400">Control</span>
-                    <p className="text-black">{s.control}</p>
+                    <span className="text-[10px] uppercase text-muted-foreground">Control</span>
+                    <p className="text-foreground">{s.control}</p>
                   </div>
                   <div className="col-span-6 sm:col-span-2">
-                    <span className="text-[10px] uppercase text-neutral-400">Variant</span>
-                    <p className="text-black">{s.variant}</p>
+                    <span className="text-[10px] uppercase text-muted-foreground">Variant</span>
+                    <p className="text-foreground">{s.variant}</p>
                   </div>
                   <div className="col-span-6 sm:col-span-2">
-                    <span className="text-[10px] uppercase text-neutral-400">Delta</span>
-                    <p className="font-semibold text-black">{s.delta}</p>
+                    <span className="text-[10px] uppercase text-muted-foreground">Delta</span>
+                    <p className="font-semibold text-foreground">{s.delta}</p>
                   </div>
                   <div className="col-span-6 sm:col-span-1">
-                    <span className="text-[10px] uppercase text-neutral-400">p-value</span>
+                    <span className="text-[10px] uppercase text-muted-foreground">p-value</span>
                     <p className="font-mono text-[11px]">
                       {s.pValue < 0.001 ? '<0.001' : s.pValue.toFixed(3)}
                       {s.adjustedPValue != null && (
-                        <span className="ml-1 text-neutral-400">
+                        <span className="ml-1 text-muted-foreground">
                           (adj. {s.adjustedPValue < 0.001 ? '<0.001' : s.adjustedPValue.toFixed(3)})
                         </span>
                       )}
@@ -86,7 +86,7 @@ function SegmentDimensionCard({ dim }: { dim: SegmentDimensionResult }) {
                   </div>
                 </>
               ) : (
-                <div className="col-span-9 text-neutral-400">No test result available</div>
+                <div className="col-span-9 text-muted-foreground">No test result available</div>
               )}
             </div>
           );
@@ -107,10 +107,10 @@ export function SegmentAnalysisSection({
   segmentation: SegmentationResult | null | undefined;
 }) {
   return (
-    <Card className="border-black/10 shadow-none">
+    <Card className="border-none shadow-none bg-transparent px-0">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
-          <Layers className="h-4 w-4 text-black" />
+          <Layers className="h-4 w-4 text-foreground" />
           <CardTitle className="text-[15px] tracking-tight">Segment Analysis</CardTitle>
         </div>
         <CardDescription>
@@ -119,8 +119,8 @@ export function SegmentAnalysisSection({
       </CardHeader>
       <CardContent className="space-y-3">
         {(!segmentation || !segmentation.ran || segmentation.dimensionResults.length === 0) && (
-          <div className="rounded-md border border-black/10 bg-neutral-50 px-3 py-4 text-center">
-            <p className="text-[13px] text-neutral-500">
+          <div className="rounded-md border border-border bg-secondary px-3 py-4 text-center">
+            <p className="text-[13px] text-muted-foreground">
               {segmentation?.reason ?? 'No segment analysis is available for this experiment.'}
             </p>
           </div>
@@ -128,7 +128,7 @@ export function SegmentAnalysisSection({
 
         {segmentation && segmentation.ran && segmentation.dimensionResults.length > 0 && (
           <>
-            <p className="text-[13px] text-neutral-600">{segmentation.reason}</p>
+            <p className="text-[13px] text-muted-foreground">{segmentation.reason}</p>
             {segmentation.dimensionResults.map((dim) => (
               <SegmentDimensionCard key={dim.dimension} dim={dim} />
             ))}
@@ -137,13 +137,13 @@ export function SegmentAnalysisSection({
 
         {segmentation && segmentation.skippedDimensions.length > 0 && (
           <div>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
               Skipped Dimensions
             </p>
             <div className="space-y-1.5">
               {segmentation.skippedDimensions.map((d) => (
-                <div key={d.column} className="text-[12px] text-neutral-500">
-                  <span className="font-medium text-neutral-700">{d.column}</span> — {d.detail}
+                <div key={d.column} className="text-[12px] text-muted-foreground">
+                  <span className="font-medium text-foreground">{d.column}</span> — {d.detail}
                 </div>
               ))}
             </div>

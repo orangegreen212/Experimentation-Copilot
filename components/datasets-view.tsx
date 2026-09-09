@@ -83,28 +83,28 @@ function DatasetCard({
   }, [group.latestExperimentId]);
 
   return (
-    <Card className="border-black/10 shadow-none transition-colors hover:border-black/20">
+    <Card className="border-border shadow-none transition-colors hover:border-border-strong">
       <CardContent className="space-y-3 p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2.5">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-primary">
               <Database className="h-4 w-4" />
             </div>
             <div className="min-w-0">
-              <p className="truncate text-[13px] font-semibold text-black">{group.datasetName}</p>
-              <p className="text-[11px] text-neutral-400">
+              <p className="truncate text-[13px] font-semibold text-foreground">{group.datasetName}</p>
+              <p className="text-[11px] text-muted-foreground">
                 Last used {new Date(group.lastRunAt).toLocaleDateString()}
               </p>
             </div>
           </div>
-          <Badge variant="outline" className="shrink-0 border-black/10 text-[10px] text-neutral-600">
+          <Badge variant="outline" className="shrink-0 border-border text-[10px] text-muted-foreground">
             {group.experimentCount} experiment{group.experimentCount === 1 ? '' : 's'}
           </Badge>
         </div>
 
-        <div className="min-h-[32px] text-[12px] leading-relaxed text-neutral-600">
+        <div className="min-h-[32px] text-[12px] leading-relaxed text-muted-foreground">
           {loading ? (
-            <span className="inline-flex items-center gap-1.5 text-neutral-400">
+            <span className="inline-flex items-center gap-1.5 text-muted-foreground">
               <Loader2 className="h-3 w-3 animate-spin" />
               Loading classification...
             </span>
@@ -113,21 +113,21 @@ function DatasetCard({
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-neutral-500">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
           {stats && (
             <>
               <span className="inline-flex items-center gap-1.5">
-                <Users className="h-3.5 w-3.5 text-neutral-400" />
+                <Users className="h-3.5 w-3.5 text-muted-foreground" />
                 {stats.users.toLocaleString()} users
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <Layers3 className="h-3.5 w-3.5 text-neutral-400" />
+                <Layers3 className="h-3.5 w-3.5 text-muted-foreground" />
                 {stats.variants} variants
               </span>
             </>
           )}
           <span className="inline-flex items-center gap-1.5">
-            <FlaskConical className="h-3.5 w-3.5 text-neutral-400" />
+            <FlaskConical className="h-3.5 w-3.5 text-muted-foreground" />
             {group.primaryMetric}
           </span>
         </div>
@@ -135,7 +135,7 @@ function DatasetCard({
         {onViewExperiments && (
           <button
             onClick={() => onViewExperiments(group.latestExperimentId)}
-            className="inline-flex items-center gap-1 text-[12px] font-medium text-indigo-600 hover:text-indigo-700"
+            className="inline-flex items-center gap-1 text-[12px] font-medium text-primary hover:text-primary"
           >
             View experiments
             <ChevronRight className="h-3.5 w-3.5" />
@@ -167,7 +167,7 @@ export function DatasetsView({ refreshKey, onViewExperiments }: DatasetsViewProp
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 py-16 text-sm text-neutral-400">
+      <div className="flex items-center gap-2 py-16 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
         Loading datasets...
       </div>
@@ -176,8 +176,8 @@ export function DatasetsView({ refreshKey, onViewExperiments }: DatasetsViewProp
 
   if (error) {
     return (
-      <Card className="border-red-200 bg-red-50 shadow-none">
-        <CardContent className="py-3 text-[13px] text-red-700">{error}</CardContent>
+      <Card className="border-destructive/25 bg-destructive/[0.08] shadow-none">
+        <CardContent className="py-3 text-[13px] text-destructive">{error}</CardContent>
       </Card>
     );
   }
@@ -186,10 +186,28 @@ export function DatasetsView({ refreshKey, onViewExperiments }: DatasetsViewProp
 
   if (groups.length === 0) {
     return (
-      <Card className="border-black/10 shadow-none">
-        <CardContent className="flex flex-col items-center gap-2 py-20 text-center text-sm text-neutral-400">
-          <Database className="h-6 w-6 text-neutral-300" />
-          No datasets yet — run an experiment to see it here.
+      <Card className="border-border shadow-none">
+        <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
+          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-primary">
+            <Database className="h-5 w-5" />
+          </div>
+          <div className="max-w-sm space-y-1">
+            <p className="text-[14px] font-semibold text-foreground">No datasets yet</p>
+            <p className="text-[13px] leading-relaxed text-muted-foreground">
+              Datasets appear here once you run your first analysis — each one groups every
+              experiment you've run against that file, with its detected classification and
+              variant/user counts.
+            </p>
+          </div>
+          {onViewExperiments && (
+            <button
+              onClick={() => onViewExperiments()}
+              className="mt-1 inline-flex items-center gap-1 text-[13px] font-medium text-primary hover:underline"
+            >
+              Go to experiments
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          )}
         </CardContent>
       </Card>
     );

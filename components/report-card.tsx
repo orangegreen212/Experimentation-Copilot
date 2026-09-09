@@ -2,7 +2,6 @@
 
 import { useState, type ReactNode } from 'react';
 import {
-  Star,
   AlertTriangle,
   CheckCircle2,
   XCircle,
@@ -60,7 +59,6 @@ import {
 } from '@/lib/report-format';
 import { ExperimentHeader } from '@/components/report/experiment-header';
 import { SummaryCards } from '@/components/report/summary-cards';
-import { KpiGrid } from '@/components/report/kpi-grid';
 import { HeroCard } from '@/components/report/hero-card';
 import { GuardrailSection } from '@/components/report/guardrail-section';
 import { RecommendationCard } from '@/components/report/recommendation-card';
@@ -68,6 +66,8 @@ import { SegmentAnalysisSection } from '@/components/report/segment-analysis-sec
 import { CopilotSummary } from '@/components/report/copilot-summary';
 import { PrimaryMetricChart } from '@/components/report/primary-metric-chart';
 import { SrmPanel } from '@/components/report/srm-panel';
+import { CollapsibleSection } from '@/components/report/collapsible-section';
+import type { ChatMessage } from '@/lib/types';
 
 interface ReportCardProps {
   report: ExperimentReport;
@@ -75,6 +75,14 @@ interface ReportCardProps {
   datasetName?: string;
   experimentId?: string;
   prompt?: string;
+  /** Follow-up Q&A, rendered as one continuous panel with the Copilot
+   *  interpretation instead of a separate chat box lower on the page.
+   *  Omit to render the report without a chat panel at all. */
+  chat?: {
+    messages: ChatMessage[];
+    onSend: (content: string) => void;
+    isLoading?: boolean;
+  };
 }
 
 /**
@@ -408,6 +416,15 @@ function TopExecutiveSummary({ report }: { report: ExperimentReport }) {
 }
 
 
+/**
+ * Compact trust strip — deliberately small, sits beside RecommendationCard
+ * rather than as its own full-width banner (previous version was a large
+ * 5-star box that competed with the decision for attention). Still
+ * distinct from RecommendationCard's "Confidence: X" badge, which is
+ * `recommendationConfidence` (confidence in the GO/NO_GO *call*) — this
+ * is `report.confidence` (confidence in the *result itself*). Both are
+ * real, different fields; this just no longer shouts as loud.
+ */
 function ConfidenceBanner({ report }: { report: ExperimentReport }) {
   const isLow = report.confidence === 'LOW';
   const isHigh = report.confidence === 'HIGH';
@@ -415,86 +432,50 @@ function ConfidenceBanner({ report }: { report: ExperimentReport }) {
   return (
     <div
       className={cn(
-        'flex flex-col gap-3 rounded-lg border p-5 sm:flex-row sm:items-center sm:justify-between',
-        isHigh && 'border-success/25 bg-success/[0.08]',
-        !isHigh && !isLow && 'border-border bg-secondary',
-        isLow && 'border-destructive/25 bg-destructive/[0.08]'
+        'flex items-start gap-3 rounded-xl border bg-surface p-5',
+        isHigh && 'border-success/25',
+        !isHigh && !isLow && 'border-border',
+        isLow && 'border-destructive/25'
       )}
     >
-      <div className="flex items-center gap-4">
-        <div
-          className={cn(
-            'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
-            isHigh && 'bg-success/[0.15] text-success',
-            !isHigh && !isLow && 'bg-border-strong text-muted-foreground',
-            isLow && 'bg-destructive/[0.15] text-destructive'
-          )}
-        >
-          <ShieldCheck className="h-5 w-5" />
-        </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-semibold tracking-tight text-foreground">
-              {/* BUG FIX: this used to say "Recommendation Confidence:"
-                  while displaying `report.confidence` — the deterministic
-                  data-quality/statistical confidence in the RESULTS
-                  (matches the PDF export's "Confidence in Results"
-                  section). `report.recommendationConfidence` is a
-                  SEPARATE field (the decision-level confidence in the
-                  GO/GO_WITH_CAUTION/NO_GO call itself, e.g. downgraded to
-                  MEDIUM by a guardrail warning even when result confidence
-                  is HIGH) — see DecisionStrip below, which now renders it.
-                  Mislabeling this one caused the PDF and the site to show
-                  two different-looking "confidence" numbers for the same
-                  report. */}
-              Confidence in Results:{' '}
-              <span
-                className={cn(
-                  isHigh && 'text-success',
-                  !isHigh && !isLow && 'text-foreground',
-                  isLow && 'text-destructive'
-                )}
-              >
-                {report.confidence}
-              </span>
-            </h2>
-            <span
-              className={cn(
-                isHigh && 'text-success',
-                !isHigh && !isLow && 'text-muted-foreground',
-                isLow && 'text-destructive'
-              )}
+      <ShieldCheck
+        className={cn(
+          'mt-0.5 h-5 w-5 shrink-0',
+          isHigh && 'text-success',
+          !isHigh && !isLow && 'text-muted-foreground',
+          isLow && 'text-destructive'
+        )}
+      />
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <p className="text-[12px] font-medium text-muted-foreground">Confidence in results</p>
+          <span
+            className={cn(
+              'font-data text-[13px] font-semibold',
+              isHigh && 'text-success',
+              !isHigh && !isLow && 'text-foreground',
+              isLow && 'text-destructive'
+            )}
+          >
+            {report.confidence}
+          </span>
+          {report.srmWarning && (
+            <Badge
+              variant="outline"
+              className="gap-1 border-destructive/25 bg-destructive/[0.08] text-[11px] text-destructive"
             >
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star
-                  key={i}
-                  className={cn(
-                    'inline h-3.5 w-3.5',
-                    i < report.confidenceStars
-                      ? 'fill-current'
-                      : 'fill-transparent opacity-25'
-                  )}
-                />
-              ))}
-            </span>
-          </div>
-          <p className="mt-0.5 max-w-2xl text-[13px] text-muted-foreground">
-            {report.confidenceReason}
-          </p>
+              <AlertTriangle className="h-3 w-3" />
+              SRM warning
+            </Badge>
+          )}
         </div>
+        <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">{report.confidenceReason}</p>
       </div>
-      {report.srmWarning && (
-        <Badge
-          variant="outline"
-          className="w-fit shrink-0 gap-1.5 border-destructive/25 bg-destructive/[0.08] text-destructive"
-        >
-          <AlertTriangle className="h-3.5 w-3.5" />
-          SRM Warning
-        </Badge>
-      )}
     </div>
   );
 }
+
+
 
 /**
  * Karolina's feedback (item 10): plain-language descriptions for
@@ -805,7 +786,7 @@ function DecisionSupportSection({
   const ds = decisionSupport;
 
   return (
-    <Card className="border-border shadow-none">
+    <Card className="border-none shadow-none bg-transparent px-0">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <Target className="h-4 w-4 text-foreground" />
@@ -1061,7 +1042,7 @@ function DecisionNarrativeSection({ narrative }: { narrative: DecisionNarrative 
     monitoring.potentialMonitoringMetrics.length > 0;
 
   return (
-    <Card className="border-border shadow-none">
+    <Card className="border-none shadow-none bg-transparent px-0">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <Lightbulb className="h-4 w-4 text-foreground" />
@@ -1506,7 +1487,7 @@ function StratificationAnalysisSection({
   const estimate = stratification.estimate;
 
   return (
-    <Card className="border-border shadow-none">
+    <Card className="border-none shadow-none bg-transparent px-0">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <Rows3 className="h-4 w-4 text-foreground" />
@@ -1702,13 +1683,19 @@ function RunInformationSection({ report }: { report: ExperimentReport }) {
   );
 }
 
-export function ReportCard({ report, datasetName, experimentId, prompt }: ReportCardProps) {
+export function ReportCard({ report, datasetName, experimentId, prompt, chat }: ReportCardProps) {
+  const primaryStatForChart = report.stats.find((s) => s.metric === report.hypothesis?.primaryMetric) ?? report.stats[0];
+  const primaryForMeta = selectPrimaryStat(report);
+  const testNames = Array.from(new Set(report.stats.map((s) => s.testName)));
+  const qualityAllPassed = report.qualityChecks.length > 0 && report.qualityChecks.every((c) => c.passed);
+  const segmentCount =
+    (report.segmentation?.dimensions?.length ?? 0) + (report.stratification ? 1 : 0);
+
   return (
     <TooltipProvider delayDuration={150}>
     <div className="space-y-3 animate-fade-in">
-      {/* 1. Experiment title / overview — now a full top bar (status,
-          experiment ID, date, users, variants) with the download action
-          moved in from the old standalone button above it. */}
+      {/* Tier 1 — must understand within ~5 seconds: what/when, then the
+          decision itself, then the primary metric that drove it. */}
       <ExperimentHeader
         report={report}
         datasetName={datasetName}
@@ -1716,232 +1703,183 @@ export function ReportCard({ report, datasetName, experimentId, prompt }: Report
         prompt={prompt}
         onDownload={() => downloadReportPdf(report, { datasetName, experimentId, prompt })}
       />
-
-      {/* 1.5. Compact "at a glance" strip — badges + Primary Metric /
-          Variants / Data Quality cards. Sits above the more detailed
-          HeroCard/KpiGrid below; same underlying data, just the fast
-          30-second read requested for the top of the report. */}
       <SummaryCards report={report} />
-
-      {/* 2, 3 & 3.5. Dashboard-style overview hero — verdict circle,
-          effect/CI/p-value, four status tiles, guardrails and the
-          recommendation panel, all in one glanceable block above every
-          technical section (Karolina's #1 ask, decision-first).
-          Same data as before — now composed from components/report/*
-          instead of one inline OverviewHero function; nothing here is
-          recalculated. */}
-      <div className="space-y-3">
-        <HeroCard report={report} />
-        <KpiGrid report={report} />
-        <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr]">
-          <GuardrailSection report={report} />
-          <RecommendationCard report={report} />
-        </div>
-        <CopilotSummary
-          summary={buildStateAwareSummary(report, classifySummaryState(report))}
-          onAskCopilot={() =>
-            document.getElementById('follow-up-chat')?.scrollIntoView({ behavior: 'smooth' })
-          }
-        />
+      <HeroCard report={report} />
+      <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr]">
+        <RecommendationCard report={report} />
+        <ConfidenceBanner report={report} />
       </div>
 
-      {/* 4. Decision Analytics — confidence, deterministic Decision
-          Support (business impact / additional metrics), and the
-          human-readable decision narrative. Guardrails and the headline
-          decision now live in OverviewHero above; nothing here is
-          removed or recalculated, only grouped and moved up. */}
-      <ConfidenceBanner report={report} />
-      {report.decisionSupport && (
-        <DecisionSupportSection
-          decisionSupport={report.decisionSupport}
-          guardrailRequestState={report.guardrailRequestState}
-          guardrailResolutions={report.guardrailResolutions}
-        />
-      )}
-      {report.decisionNarrative && <DecisionNarrativeSection narrative={report.decisionNarrative} />}
+      {/* Tier 2 — highly accessible but visually secondary to the
+          decision above: did we break anything else, and the Copilot's
+          read of the result (interpretation + the Q&A that continues
+          it, as one panel — not two disconnected chat surfaces). */}
+      <GuardrailSection report={report} />
+      <CopilotSummary
+        summary={buildStateAwareSummary(report, classifySummaryState(report))}
+        caveats={report.decisionNarrative?.whatPreventsFullGo}
+        chat={chat}
+      />
 
-      {/* 5. Statistical Analysis */}
-      {(() => {
-        const primaryStat = report.stats.find((s) => s.metric === report.hypothesis?.primaryMetric) ?? report.stats[0];
-        return primaryStat ? <PrimaryMetricChart stat={primaryStat} /> : null;
-      })()}
-      <Card className="border-border shadow-none">
-        <CardHeader className="pb-3">
-          <div className="flex items-center gap-2">
-            <FileBarChart className="h-4 w-4 text-foreground" />
-            <CardTitle className="text-[15px] tracking-tight">
-              Statistical Results
-            </CardTitle>
-          </div>
-          <CardDescription>
-            {(() => {
-              const testNames = Array.from(
-                new Set(report.stats.map((s) => s.testName))
-              );
-              if (testNames.length === 0) {
-                return 'Statistical test results with 95% confidence intervals';
-              }
-              return `${testNames.join(' / ')} results with 95% confidence intervals`;
-            })()}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
+      {/* "What should I do next" is still a Tier-1/2 question, not a
+          technical detail, so Recommendations/Next Steps stays visible
+          rather than joining the collapsed sections below. */}
+      {(report.recommendations.length > 0 || report.nextSteps.length > 0) && (
+        <Card className="border-border shadow-none">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Lightbulb className="h-4 w-4 text-foreground" />
+              <CardTitle className="text-[15px] tracking-tight">Recommendations &amp; next steps</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {report.recommendations.length > 0 && (
+              <div>
+                <p className="mb-2 text-[11px] font-medium text-muted-foreground">Recommendations</p>
+                <ul className="space-y-1.5">
+                  {report.recommendations.map((r, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-[13px]">
+                      <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary" />
+                      <span className="text-foreground">{r}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {report.nextSteps.length > 0 && (
+              <div>
+                <p className="mb-2 text-[11px] font-medium text-muted-foreground">Next steps</p>
+                <ul className="space-y-1.5">
+                  {report.nextSteps.map((s, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-[13px]">
+                      <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      <span className="text-foreground">{s}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Tier 3 — analytical depth for the reader who wants it (analyst
+          checking methodology, PM double-checking a guardrail number).
+          Collapsed by default: necessary for a responsible decision,
+          but shouldn't out-compete the decision for attention. */}
+      <CollapsibleSection
+        icon={<FileBarChart className="h-4 w-4" />}
+        title="Statistical details"
+        meta={
+          primaryForMeta
+            ? `${primaryForMeta.significant ? 'Significant' : 'Not significant'} · ${testNames.join(' / ') || 'test'} · MDE ${report.mde}`
+            : undefined
+        }
+      >
+        {primaryStatForChart && <PrimaryMetricChart stat={primaryStatForChart} />}
+        <div className="space-y-2">
           {report.stats.map((s) => (
             <StatRow key={s.metric} stat={s} />
           ))}
+        </div>
 
-          {report.bootstrapCiLower != null && report.bootstrapCiUpper != null && (
-            <>
-              <Separator className="my-3 bg-border" />
-              <div className="rounded-md border border-border bg-secondary px-3 py-2.5">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[10px] font-medium text-muted-foreground">
-                      Bootstrap Cross-check
-                    </p>
-                    <p className="mt-0.5 text-[13px] text-foreground">
-                      95% CI for the difference: [{report.bootstrapCiLower.toFixed(4)}, {report.bootstrapCiUpper.toFixed(4)}]
-                    </p>
-                  </div>
-                  <Badge variant="outline" className="shrink-0 border-border text-[10px] text-muted-foreground">
-                    {report.bootstrapIterations?.toLocaleString() ?? '10,000'} iterations
-                  </Badge>
-                </div>
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  Non-parametric cross-check; the primary hypothesis test and decision remain unchanged.
+        {report.bootstrapCiLower != null && report.bootstrapCiUpper != null && (
+          <div className="rounded-md border border-border bg-secondary px-3 py-2.5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-medium text-muted-foreground">Bootstrap cross-check</p>
+                <p className="mt-0.5 font-data text-[13px] text-foreground">
+                  95% CI for the difference: [{report.bootstrapCiLower.toFixed(4)}, {report.bootstrapCiUpper.toFixed(4)}]
                 </p>
               </div>
-            </>
+              <Badge variant="outline" className="shrink-0 border-border text-[11px] text-muted-foreground">
+                {report.bootstrapIterations?.toLocaleString() ?? '10,000'} iterations
+              </Badge>
+            </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Non-parametric cross-check; the primary hypothesis test and decision remain unchanged.
+            </p>
+          </div>
+        )}
+
+        <div className="grid gap-2 sm:grid-cols-2">
+          <div className="rounded-md border border-border bg-secondary px-3 py-2.5">
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+              MDE
+              <InfoTooltip text="Minimum Detectable Effect — the smallest effect the experiment is designed to reliably detect at the chosen significance level and power. It is a design target, not the effect actually observed." />
+            </span>
+            <p className="mt-0.5 font-data text-[13px] text-foreground">{report.mde}</p>
+          </div>
+          <div className="rounded-md border border-border bg-secondary px-3 py-2.5">
+            <p className="text-[11px] font-medium text-muted-foreground">Sample size</p>
+            <p className="mt-0.5 text-[13px] text-foreground">{report.sampleSizeNote}</p>
+          </div>
+        </div>
+
+        <Separator className="bg-border" />
+
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="h-4 w-4 text-foreground" />
+          <p className="text-[13px] font-semibold tracking-tight text-foreground">Data quality &amp; assumptions</p>
+          <Badge
+            variant="outline"
+            className={cn(
+              'ml-auto text-[11px] font-semibold',
+              qualityAllPassed
+                ? 'border-success/25 bg-success/[0.08] text-success'
+                : 'border-warning/25 bg-warning/[0.08] text-warning'
+            )}
+          >
+            {report.qualityChecks.length === 0 ? 'No checks run' : qualityAllPassed ? 'All checks passed' : 'Has warnings'}
+          </Badge>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {report.qualityChecks.map((c) => (
+            <QualityRow key={c.label} {...c} />
+          ))}
+        </div>
+
+        <SrmPanel qualityChecks={report.qualityChecks} />
+      </CollapsibleSection>
+
+      {(report.decisionSupport || report.decisionNarrative) && (
+        <CollapsibleSection
+          icon={<Target className="h-4 w-4" />}
+          title="Decision rationale"
+          meta="Business impact & reasoning behind the call above"
+        >
+          {report.decisionSupport && (
+            <DecisionSupportSection
+              decisionSupport={report.decisionSupport}
+              guardrailRequestState={report.guardrailRequestState}
+              guardrailResolutions={report.guardrailResolutions}
+            />
           )}
+          {report.decisionSupport && report.decisionNarrative && <Separator className="bg-border" />}
+          {report.decisionNarrative && <DecisionNarrativeSection narrative={report.decisionNarrative} />}
+        </CollapsibleSection>
+      )}
 
-          <Separator className="my-3 bg-border" />
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div className="rounded-md border border-border bg-secondary px-3 py-2.5">
-              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
-                MDE
-                <InfoTooltip text="Minimum Detectable Effect — the smallest effect the experiment is designed to reliably detect at the chosen significance level and power. It is a design target, not the effect actually observed." />
-              </span>
-              <p className="mt-0.5 text-[13px] text-foreground">{report.mde}</p>
-            </div>
-            <div className="rounded-md border border-border bg-secondary px-3 py-2.5">
-              <p className="text-[10px] font-medium text-muted-foreground">
-                Sample Size
-              </p>
-              <p className="mt-0.5 text-[13px] text-foreground">
-                {report.sampleSizeNote}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {(report.segmentation || report.stratification) && (
+        <CollapsibleSection
+          icon={<Rows3 className="h-4 w-4" />}
+          title="Segment analysis"
+          meta={segmentCount > 0 ? `${segmentCount} breakdown${segmentCount === 1 ? '' : 's'} · exploratory` : 'Exploratory'}
+        >
+          <SegmentAnalysisSection segmentation={report.segmentation} />
+          {report.segmentation && report.stratification && <Separator className="bg-border" />}
+          <StratificationAnalysisSection stratification={report.stratification} />
+        </CollapsibleSection>
+      )}
 
-      {/* 6. Data Quality & Validity */}
-      <Card className="border-border shadow-none">
-        <CardHeader className="pb-3">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-foreground" />
-            <CardTitle className="text-[15px] tracking-tight">
-              Data Quality &amp; Assumptions
-            </CardTitle>
-            <Badge
-              variant="outline"
-              className={cn(
-                'ml-auto text-[10px] font-semibold',
-                report.qualityChecks.length > 0 && report.qualityChecks.every((c) => c.passed)
-                  ? 'border-success/25 bg-success/[0.08] text-success'
-                  : 'border-warning/25 bg-warning/[0.08] text-warning'
-              )}
-            >
-              {report.qualityChecks.length === 0
-                ? 'No checks run'
-                : report.qualityChecks.every((c) => c.passed)
-                ? 'All checks passed'
-                : 'Has warnings'}
-            </Badge>
-          </div>
-          <CardDescription>
-            Automated checks on randomization, outliers, and missing data
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {report.qualityChecks.map((c) => (
-              <QualityRow key={c.label} {...c} />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Assignment Quality (SRM) — visual split of Control/Treatment vs
-          expected, parsed from the existing SRM QualityCheck row above;
-          adds nothing the backend didn't already compute. */}
-      <SrmPanel qualityChecks={report.qualityChecks} />
-
-      {/* 7. Segmentation Analysis — exploratory, supporting evidence only;
-          kept visually and hierarchically secondary to the primary
-          decision above. */}
-      <SegmentAnalysisSection segmentation={report.segmentation} />
-
-      {/* TRUE stratified analysis — its own section, never merged into or
-          labeled as Segment Analysis above. */}
-      <StratificationAnalysisSection stratification={report.stratification} />
-
-      {/* 9. Decision Audit Trail (Phase 7) — explanatory only;
-          decisionAudit.decision always mirrors report.decision above and
-          never overrides it. Collapsible — see DecisionAuditTrailSection. */}
+      {/* Tier 4 — audit / technical evidence, collapsed by default. */}
       {report.decisionAudit && <DecisionAuditTrailSection audit={report.decisionAudit} />}
-
-      {/* Evidence & Sources (Stage 9/10 Agentic RAG) — only renders when the
-          backend actually retrieved knowledge-base references; see
-          EvidenceSection's docstring. Never affects report.decision. */}
       <EvidenceSection
         references={report.knowledgeBaseReferences}
         attempted={report.knowledgeBaseAttempted}
         retrievalError={report.knowledgeBaseRetrievalError}
         blockingIssue={report.knowledgeBaseBlockingIssue}
       />
-
-      {/* Supplementary: Strategic Recommendations */}
-      <Card className="border-border shadow-none">
-        <CardHeader className="pb-3">
-          <div className="flex items-center gap-2">
-            <Lightbulb className="h-4 w-4 text-foreground" />
-            <CardTitle className="text-[15px] tracking-tight">
-              Strategic Recommendations &amp; Next Steps
-            </CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-              Recommendations
-            </p>
-            <ul className="space-y-1.5">
-              {report.recommendations.map((r, i) => (
-                <li key={i} className="flex items-start gap-2.5 text-[13px]">
-                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary" />
-                  <span className="text-foreground">{r}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-              Next Steps
-            </p>
-            <ul className="space-y-1.5">
-              {report.nextSteps.map((s, i) => (
-                <li key={i} className="flex items-start gap-2.5 text-[13px]">
-                  <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <span className="text-foreground">{s}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Supplementary: Run Information (Phase 8) — compact, a few scalar facts, never a debugging log */}
       <RunInformationSection report={report} />
     </div>
     </TooltipProvider>

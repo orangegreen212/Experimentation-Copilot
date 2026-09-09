@@ -96,7 +96,7 @@ export function DatasetClassificationCard({ dataset }: DatasetClassificationCard
         {rows.map((row) => (
           <div key={row.label} className="flex flex-col gap-0.5">
             <dt
-              className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground cursor-help"
+              className="cursor-help text-[11px] font-medium text-muted-foreground"
               title={row.hint}
             >
               {row.label}

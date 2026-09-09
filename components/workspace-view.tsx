@@ -22,7 +22,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ExecutionStepper } from '@/components/execution-stepper';
 import { ReportCard } from '@/components/report-card';
-import { FollowUpChat } from '@/components/follow-up-chat';
 import { HypothesisForm } from '@/components/hypothesis-form';
 import { ExperimentSetup } from '@/components/experiment-setup';
 import { DatasetClassificationCard } from '@/components/dataset-classification-card';
@@ -838,8 +837,8 @@ export function WorkspaceView({ onSessionSaved, settings, onSettingsChange }: Wo
             datasetName={fileName ?? undefined}
             experimentId={experimentId ?? undefined}
             prompt={prompt}
+            chat={{ messages, onSend: handleFollowUp, isLoading: isChatLoading }}
           />
-          <FollowUpChat messages={messages} onSend={handleFollowUp} isLoading={isChatLoading} />
         </div>
       )}
     </div>

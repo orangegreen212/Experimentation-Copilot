@@ -6,15 +6,14 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { ReportCard } from '@/components/report-card';
-import { FollowUpChat } from '@/components/follow-up-chat';
 import { RelatedExperiments } from '@/components/related-experiments';
 import { listExperiments, getExperiment, deleteExperiment, followUpChat, ApiError } from '@/lib/api';
 import type { ChatMessage, ConfidenceLevel, ExperimentDetail, ExperimentSummary, Settings } from '@/lib/types';
 
 const CONFIDENCE_STYLES: Record<ConfidenceLevel, { badge: string; text: string }> = {
-  HIGH: { badge: 'border-green-200 bg-green-50 text-green-700', text: 'text-green-600' },
-  MEDIUM: { badge: 'border-black/10 bg-neutral-100 text-neutral-600', text: 'text-neutral-400' },
-  LOW: { badge: 'border-red-200 bg-red-50 text-red-700', text: 'text-red-600' },
+  HIGH: { badge: 'border-success/25 bg-success/[0.08] text-success', text: 'text-success' },
+  MEDIUM: { badge: 'border-border bg-secondary text-muted-foreground', text: 'text-muted-foreground' },
+  LOW: { badge: 'border-destructive/25 bg-destructive/[0.08] text-destructive', text: 'text-destructive' },
 };
 
 interface HistoryViewProps {
@@ -135,21 +134,21 @@ export function HistoryView({ refreshKey, initialExperimentId, settings }: Histo
       {/* Session list */}
       <div className="flex w-72 shrink-0 flex-col">
         <div className="mb-3 flex items-center gap-2">
-          <History className="h-4 w-4 text-black" />
-          <h2 className="text-[13px] font-semibold text-black">Past Sessions</h2>
-          <Badge variant="outline" className="ml-auto text-[10px] border-black/10 text-neutral-500">
+          <History className="h-4 w-4 text-foreground" />
+          <h2 className="text-[13px] font-semibold text-foreground">Past Sessions</h2>
+          <Badge variant="outline" className="ml-auto text-[10px] border-border text-muted-foreground">
             {!loading && !error ? sessions.length : '—'}
           </Badge>
         </div>
         {loading && (
-          <div className="flex items-center gap-2 py-6 text-xs text-neutral-400">
+          <div className="flex items-center gap-2 py-6 text-xs text-muted-foreground">
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
             Loading experiment history...
           </div>
         )}
         {!loading && error && (
-          <Card className="border-red-200 bg-red-50 shadow-none">
-            <CardContent className="py-3 text-[13px] text-red-700">{error}</CardContent>
+          <Card className="border-destructive/25 bg-destructive/[0.08] shadow-none">
+            <CardContent className="py-3 text-[13px] text-destructive">{error}</CardContent>
           </Card>
         )}
         <div className="space-y-px">
@@ -163,7 +162,7 @@ export function HistoryView({ refreshKey, initialExperimentId, settings }: Histo
                 key={session.experimentId}
                 className={cn(
                   'group relative w-full border-l-2 px-3 py-3 text-left transition-colors',
-                  active ? 'border-black bg-neutral-50' : 'border-transparent hover:bg-neutral-50'
+                  active ? 'border-black bg-secondary' : 'border-transparent hover:bg-secondary'
                 )}
               >
                 <button
@@ -174,20 +173,20 @@ export function HistoryView({ refreshKey, initialExperimentId, settings }: Histo
                   className="block w-full text-left"
                 >
                   <div className="flex items-center justify-between pr-7">
-                    <span className="truncate text-[15px] font-medium text-black">
+                    <span className="truncate text-[15px] font-medium text-foreground">
                       {session.datasetName}
                     </span>
                     <ChevronRight
                       className={cn(
                         'h-4 w-4 shrink-0 transition-colors',
-                        active ? 'text-black' : 'text-neutral-300'
+                        active ? 'text-foreground' : 'text-muted-foreground/50'
                       )}
                     />
                   </div>
-                  <p className="mt-0.5 truncate text-sm text-neutral-400">
+                  <p className="mt-0.5 truncate text-sm text-muted-foreground">
                     {new Date(session.createdAt).toLocaleString()} · {session.primaryMetric}
                   </p>
-                  <p className="mt-0.5 truncate text-sm text-neutral-500">{session.userPrompt}</p>
+                  <p className="mt-0.5 truncate text-sm text-muted-foreground">{session.userPrompt}</p>
                   <div className="mt-1.5 flex items-center gap-2">
                     <Badge variant="outline" className={cn('gap-1 text-xs', styles.badge)}>
                       {session.confidence}
@@ -205,8 +204,8 @@ export function HistoryView({ refreshKey, initialExperimentId, settings }: Histo
                   className={cn(
                     'absolute right-2 top-3 rounded-md p-1.5 transition-colors',
                     isConfirming
-                      ? 'bg-red-50 text-red-600'
-                      : 'text-neutral-300 hover:bg-red-50 hover:text-red-600 group-hover:text-neutral-400'
+                      ? 'bg-destructive/[0.08] text-destructive'
+                      : 'text-muted-foreground/50 hover:bg-destructive/[0.08] hover:text-destructive group-hover:text-muted-foreground'
                   )}
                 >
                   {isDeleting ? (
@@ -216,7 +215,7 @@ export function HistoryView({ refreshKey, initialExperimentId, settings }: Histo
                   )}
                 </button>
                 {isConfirming && !isDeleting && (
-                  <p className="mt-1 text-xs font-medium text-red-600">
+                  <p className="mt-1 text-xs font-medium text-destructive">
                     Click the trash icon again to permanently delete
                   </p>
                 )}
@@ -229,12 +228,12 @@ export function HistoryView({ refreshKey, initialExperimentId, settings }: Histo
       {/* Report detail */}
       <div className="min-w-0 flex-1 overflow-y-auto pr-1">
         {detailError && !error && (
-          <Card className="mb-3 border-red-200 bg-red-50 shadow-none">
-            <CardContent className="py-3 text-[13px] text-red-700">{detailError}</CardContent>
+          <Card className="mb-3 border-destructive/25 bg-destructive/[0.08] shadow-none">
+            <CardContent className="py-3 text-[13px] text-destructive">{detailError}</CardContent>
           </Card>
         )}
         {detailLoading && (
-          <div className="flex items-center gap-2 py-6 text-xs text-neutral-400">
+          <div className="flex items-center gap-2 py-6 text-xs text-muted-foreground">
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
             Loading report...
           </div>
@@ -242,10 +241,10 @@ export function HistoryView({ refreshKey, initialExperimentId, settings }: Histo
         {!detailLoading && detail ? (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-semibold tracking-tight text-black">
+              <h2 className="text-lg font-semibold tracking-tight text-foreground">
                 {detail.datasetName}
               </h2>
-              <span className="text-sm text-neutral-400">
+              <span className="text-sm text-muted-foreground">
                 · {new Date(detail.createdAt).toLocaleString()}
               </span>
             </div>
@@ -254,18 +253,18 @@ export function HistoryView({ refreshKey, initialExperimentId, settings }: Histo
               datasetName={detail.datasetName}
               experimentId={detail.experimentId}
               prompt={detail.userPrompt}
+              chat={{ messages, onSend: handleFollowUp }}
             />
             <RelatedExperiments
               items={detail.relatedExperiments.filter((r) => r.experimentId !== detail.experimentId)}
             />
-            <FollowUpChat messages={messages} onSend={handleFollowUp} />
           </div>
         ) : (
           !detailLoading &&
           !loading &&
           !error && (
-            <Card className="border-black/10 shadow-none">
-              <CardContent className="flex items-center justify-center py-20 text-sm text-neutral-400">
+            <Card className="border-border shadow-none">
+              <CardContent className="flex items-center justify-center py-20 text-sm text-muted-foreground">
                 {sessions.length > 0
                   ? 'Select a session to view its report'
                   : 'No sessions yet — run an evaluation in New Experiment to see it here'}
