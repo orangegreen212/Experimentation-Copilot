@@ -1689,7 +1689,7 @@ export function ReportCard({ report, datasetName, experimentId, prompt, chat }: 
   const testNames = Array.from(new Set(report.stats.map((s) => s.testName)));
   const qualityAllPassed = report.qualityChecks.length > 0 && report.qualityChecks.every((c) => c.passed);
   const segmentCount =
-    (report.segmentation?.dimensions?.length ?? 0) + (report.stratification ? 1 : 0);
+    (report.segmentation?.dimensionResults?.length ?? 0) + (report.stratification ? 1 : 0);
 
   return (
     <TooltipProvider delayDuration={150}>
