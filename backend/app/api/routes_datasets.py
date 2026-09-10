@@ -155,13 +155,20 @@ def classify_dataset_route(
                 ) from exc
     elif use_demo:
         path, file_name = _DEMO_PATHS[simulate_low_quality]
+        raw_bytes = path.read_bytes()
+        # Demo datasets are loaded from a local path, not an HTTP upload,
+        # but the bytes on disk ARE the exact same CSV bytes an uploaded
+        # file would have — read them directly so store_dataset() below
+        # takes the fast raw-CSV compression path (`_encode_csv_payload`)
+        # instead of the much slower columnar_v1 JSON serialize path (see
+        # dataset_store.py's module docstring: ~294K rows blew up to
+        # ~1.17 GB peak memory even with the columnar format, before
+        # compression; the raw-CSV path skips that serialize step
+        # entirely). Previously this was hardcoded to `raw_bytes = None`,
+        # which meant demo/real bundled datasets ALWAYS paid the slow
+        # path even for datasets nearly 300K rows — this only reads local
+        # bytes, never an Excel file, so `is_excel` stays False.
         df = pd.read_csv(path)
-        # Demo datasets are loaded from a local path, not an upload — there
-        # is no raw upload byte stream to persist, and this is never an
-        # Excel file. Both must be defined before the shared code below
-        # (`raw_bytes if not is_excel else None`) runs, or use_demo=True
-        # crashes /datasets/classify outright with an UnboundLocalError.
-        raw_bytes = None
         is_excel = False
     elif dataset_key:
         if dataset_key not in _REAL_DATASETS:
@@ -170,11 +177,16 @@ def classify_dataset_route(
                 detail=f"Unknown dataset_key {dataset_key!r}. Available: {sorted(_REAL_DATASETS)}",
             )
         path, file_name = _REAL_DATASETS[dataset_key]
+        # Same reasoning as the use_demo branch above: this is a local
+        # bundled file, so its raw bytes are directly available — read
+        # them so this hits the same fast raw-CSV storage path an
+        # uploaded CSV gets, instead of the slow full-DataFrame JSON
+        # serialize path. This matters most here: "Landing Page Redesign"
+        # is ~294K rows, exactly the size the columnar_v1 docstring
+        # documents as memory/time-expensive to serialize, which is the
+        # dataset analysts reported repeatedly failing to select.
+        raw_bytes = path.read_bytes()
         df = pd.read_csv(path)
-        # Same reasoning as the use_demo branch above: loaded from a local
-        # bundled file, not an upload, so there's no raw byte stream and
-        # it's never Excel.
-        raw_bytes = None
         is_excel = False
     else:
         raise HTTPException(
