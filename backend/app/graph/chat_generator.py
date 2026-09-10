@@ -20,6 +20,7 @@ from app.core.config import app_settings
 from app.core.logging import get_node_logger
 from app.schemas.chat import ChatMessage, ChatRole
 from app.schemas.report import ExperimentReport
+from app.stats.hypothesis_tests import format_p_value
 
 log = get_node_logger("Chat")
 
@@ -37,7 +38,57 @@ _TEMPLATE_KEYWORDS = [
     "sample", "power", "mde", "why", "methodology", "guidance",
     "significant", "significance", "p-value", "p value", "confidence interval",
     "practical", "effect", "metric", "conversion", "revenue",
+    "segment", "heterogen", "cohort", "subgroup",
 ]
+
+
+def _describe_segmentation(segmentation) -> str:
+    """
+    Turns `report.segmentation` (a `SegmentationResult`, see
+    `app/schemas/segmentation.py`) into the plain-language answer to
+    "which segment contributed most / drove the effect", using only
+    facts already computed by `app/stats/segmentation.py` — never
+    recomputing a delta or p-value here, same non-negotiable rule as
+    everything else in this module.
+
+    Shared by `TemplateChatResponder` (returned directly) and
+    `_build_chat_system_prompt` (folded into the grounding facts so
+    the LLM path has the same information, instead of the two paths
+    silently drifting apart — see this module's docstring).
+    """
+    if segmentation is None:
+        return (
+            "Segmentation was not run for this report (no segmentation result is attached), "
+            "so no segment-level breakdown is available to say which segment contributed most."
+        )
+    if not segmentation.ran:
+        return f"Segmentation did not run for this report: {segmentation.reason}"
+
+    lines: list[str] = []
+    for dim in segmentation.dimension_results:
+        lines.append(f"Dimension \"{dim.dimension}\" (correction: {dim.multiple_testing_method}):")
+        for eff in dim.segment_effects:
+            if eff.sample_size_status.value == "insufficient" or eff.stat_result is None:
+                detail = eff.skip_detail or "insufficient sample size to test this segment"
+                lines.append(f"  - {eff.segment_value}: not tested — {detail}")
+                continue
+            s = eff.stat_result
+            reliable = " (reliable after correction)" if eff.segment_value in dim.reliable_segment_values else ""
+            lines.append(
+                f"  - {eff.segment_value}: delta={s.delta}, p={format_p_value(s.p_value)}, "
+                f"significant={s.significant}{reliable}"
+            )
+        if dim.has_heterogeneous_effect:
+            method = f" ({dim.heterogeneity_test_method}, p={format_p_value(dim.heterogeneity_p_value)})" if dim.heterogeneity_p_value is not None else ""
+            lines.append(f"  Effects differ significantly across segments in this dimension{method}.")
+        elif dim.heterogeneity_test_method:
+            lines.append(f"  No statistically detected difference in effect across segments ({dim.heterogeneity_test_method}).")
+
+    if segmentation.skipped_dimensions:
+        skipped = ", ".join(f"{d.column} ({d.reason.value})" for d in segmentation.skipped_dimensions)
+        lines.append(f"Columns not used as segmentation dimensions: {skipped}.")
+
+    return "\n".join(lines) if lines else "Segmentation ran but produced no usable dimension results."
 
 
 class TemplateChatResponder:
@@ -132,6 +183,9 @@ class TemplateChatResponder:
                 return f"The primary metric represented in the statistical result is {report.stats[0].metric}. The report contains the computed result for that metric; it does not assume a different primary metric in the chat."
             return "No hypothesis-test metric is present in this report, so the primary metric cannot be confirmed from the report facts."
 
+        if "segment" in q or "heterogen" in q or "cohort" in q or "subgroup" in q:
+            return _describe_segmentation(report.segmentation)
+
         if report.knowledge_base_references and ("why" in q or "methodology" in q or "guidance" in q):
             top = report.knowledge_base_references[0]
             return f"Per {top.source} (\"{top.heading}\"): {top.excerpt}"
@@ -154,7 +208,6 @@ def _build_chat_system_prompt(report: ExperimentReport) -> str:
     back to the client.
     """
     from app.llm.sanitize import sanitize_for_llm
-    from app.stats.hypothesis_tests import format_p_value
 
     stats_summary = "\n".join(
         f"- {sanitize_for_llm(s.metric)}: control={s.control}, variant={s.variant}, delta={s.delta}, "
@@ -168,6 +221,8 @@ def _build_chat_system_prompt(report: ExperimentReport) -> str:
     )
 
     kb_summary = "\n".join(f"- {r.source} (\"{r.heading}\"): {r.excerpt}" for r in report.knowledge_base_references) or "(none retrieved)"
+
+    segmentation_summary = _describe_segmentation(report.segmentation)
 
     return (
         "You are answering a follow-up question about an experiment report that has ALREADY been "
@@ -194,6 +249,7 @@ def _build_chat_system_prompt(report: ExperimentReport) -> str:
         f"MDE: {report.mde}\n"
         f"SAMPLE SIZE: {report.sample_size_note}\n\n"
         f"RECOMMENDATIONS:\n" + "\n".join(f"- {r}" for r in report.recommendations) + "\n\n"
+        f"SEGMENTATION (supporting evidence only — never the primary decision signal):\n{segmentation_summary}\n\n"
         f"METHODOLOGY GUIDANCE RETRIEVED:\n{kb_summary}\n\n"
         "Rules:\n"
         "- Do NOT invent, recalculate, or override any number above (p-values, confidence intervals, "
@@ -221,6 +277,11 @@ def _build_chat_system_prompt(report: ExperimentReport) -> str:
         "- Treat the metric in the statistical result as the authoritative metric for this report. Do not substitute conversion, revenue, or another metric merely because it is common in A/B testing.\n"
         "- If the question asks about something not covered by the facts above (e.g. a metric that "
         "wasn't tested, or a cause that isn't stated), say so plainly rather than guessing.\n"
+        "- If asked which segment contributed most / drove the effect, answer ONLY from SEGMENTATION "
+        "above — never from STATISTICS (which is the overall/primary-metric result, not a segment "
+        "breakdown). Segmentation is supporting evidence, not the decision itself: do not let a segment "
+        "result override or contradict DECISION above. If SEGMENTATION says it did not run, say plainly "
+        "that no segment-level breakdown is available rather than guessing which segment mattered most.\n"
     )
 
 
