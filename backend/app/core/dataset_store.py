@@ -73,6 +73,7 @@ from __future__ import annotations
 
 import base64
 import gzip
+import hashlib
 import json
 import time
 import uuid
@@ -84,7 +85,8 @@ from typing import Iterator
 
 import pandas as pd
 from fastapi import HTTPException
-from sqlalchemy import DateTime, String, Text, create_engine, select
+from sqlalchemy import DateTime, String, Text, create_engine, select, text
+from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
 from app.core.config import app_settings
@@ -374,6 +376,13 @@ class DatasetModel(Base):
     # the column schema/dtypes alongside the data so read_json can
     # round-trip it without the caller guessing dtypes back.
     data_json: Mapped[str] = mapped_column(Text)
+    # sha256 of the exact bytes handed to store_dataset() (the raw CSV
+    # bytes when available, otherwise the serialized DataFrame) — see
+    # store_dataset()'s dedup check below. Nullable so old rows written
+    # before this column existed (backfilled via the defensive ALTER
+    # TABLE in _get_session_factory(), not a real migration tool) don't
+    # need a backfill of their own; a NULL hash simply never matches.
+    content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
 
 
 _engine = None
@@ -394,6 +403,24 @@ def _get_session_factory() -> sessionmaker[Session]:
         connect_args = {"check_same_thread": False} if url.startswith("sqlite") else {}
         _engine = create_engine(url, connect_args=connect_args)
         Base.metadata.create_all(_engine)
+        # `create_all` only creates MISSING TABLES — it never alters an
+        # existing one, so a `datasets` table created before
+        # `content_hash` existed (i.e. every table already running in
+        # Supabase) would otherwise 500 on this module's first query
+        # referencing that column. Deliberately not a real migration
+        # tool (see this module's docstring on why raw-CSV storage was
+        # chosen to avoid needing one) — just an idempotent, best-effort
+        # ALTER TABLE, safe to run on every startup on both Postgres
+        # (Supabase) and SQLite >= 3.35 (which both support `ADD COLUMN
+        # IF NOT EXISTS`); harmless no-op once the column is present.
+        try:
+            with _engine.begin() as conn:
+                conn.execute(text("ALTER TABLE datasets ADD COLUMN IF NOT EXISTS content_hash VARCHAR(64)"))
+        except (OperationalError, ProgrammingError):
+            # Expected on every fresh DB (create_all already added the
+            # column as part of a brand-new table) — only meaningful
+            # for a pre-existing production table missing it.
+            log.debug("content_hash column already present on datasets table.")
         _Session = sessionmaker(bind=_engine)
     return _Session
 
@@ -405,29 +432,55 @@ def store_dataset(df: pd.DataFrame, *, raw_csv_bytes: bytes | None = None) -> st
     path. This is substantially safer for large files because it avoids
     materializing a second, much larger JSON representation of the DataFrame.
     Existing callers continue to use the columnar_v1 DataFrame path.
+
+    DEDUP: hashes the exact bytes about to be persisted and, if a row
+    with that same hash already exists, returns ITS dataset_id instead
+    of writing a new one. This matters because nothing currently
+    deletes a dataset once it's no longer needed (see this module's
+    docstring on why — every re-selection of the same bundled dataset
+    in the Data Source picker, every retry after a transient timeout,
+    and the frontend's automatic metric-metadata backfill reclassify
+    were each silently writing ANOTHER full copy of identical content.
+    Dedup turns all of those into a fast hash lookup that reuses the
+    existing row instead of growing storage — the main driver behind a
+    single 25 MB upload turning into hundreds of MB stored.
     """
-    dataset_id = str(uuid.uuid4())
-
-    if raw_csv_bytes is not None:
-        _t_start = time.perf_counter()
-        stored_value = _encode_csv_payload(raw_csv_bytes)
-        log.info(
-            "[DatasetStore] CSV payload compressed in %.2fs (%.2f MB -> %.2f MB)",
-            time.perf_counter() - _t_start,
-            len(raw_csv_bytes) / 1e6,
-            len(stored_value) / 1e6,
-        )
-    else:
+    hash_source = raw_csv_bytes if raw_csv_bytes is not None else None
+    serialized: str | None = None
+    if hash_source is None:
         serialized = _serialize_dataframe(df)
-        stored_value = _encode_payload(serialized)
+        hash_source = serialized.encode("utf-8")
+    content_hash = hashlib.sha256(hash_source).hexdigest()
 
-    row = DatasetModel(
-        dataset_id=dataset_id,
-        created_at=datetime.now(timezone.utc),
-        data_json=stored_value,
-    )
     session_factory = _get_session_factory()
     with session_factory() as session:
+        existing = session.execute(
+            select(DatasetModel.dataset_id).where(DatasetModel.content_hash == content_hash)
+        ).scalar_one_or_none()
+        if existing is not None:
+            log.info("[DatasetStore] Dedup hit — reusing dataset_id=%s instead of storing a duplicate.", existing)
+            return existing
+
+        dataset_id = str(uuid.uuid4())
+
+        if raw_csv_bytes is not None:
+            _t_start = time.perf_counter()
+            stored_value = _encode_csv_payload(raw_csv_bytes)
+            log.info(
+                "[DatasetStore] CSV payload compressed in %.2fs (%.2f MB -> %.2f MB)",
+                time.perf_counter() - _t_start,
+                len(raw_csv_bytes) / 1e6,
+                len(stored_value) / 1e6,
+            )
+        else:
+            stored_value = _encode_payload(serialized)
+
+        row = DatasetModel(
+            dataset_id=dataset_id,
+            created_at=datetime.now(timezone.utc),
+            data_json=stored_value,
+            content_hash=content_hash,
+        )
         session.add(row)
         session.commit()
 
@@ -483,3 +536,51 @@ def dataset_exists(dataset_id: str) -> bool:
             select(DatasetModel.dataset_id).where(DatasetModel.dataset_id == dataset_id)
         ).scalar_one_or_none()
     return found_id is not None
+
+
+def delete_dataset(dataset_id: str) -> bool:
+    """Delete a single dataset row. Returns False if it didn't exist.
+
+    Callers are responsible for confirming the dataset is no longer
+    referenced anywhere it might still be needed (an experiment's
+    `dataset_id`, or a definition's `data_source.datasetId`) — this
+    function does not check that itself. Prefer
+    `delete_unused_datasets()` below unless you specifically know this
+    id is safe to remove.
+    """
+    session_factory = _get_session_factory()
+    with session_factory() as session:
+        row = session.get(DatasetModel, dataset_id)
+        if row is None:
+            return False
+        session.delete(row)
+        session.commit()
+    return True
+
+
+def delete_unused_datasets(*, referenced_ids: set[str]) -> list[str]:
+    """Delete every stored dataset whose id is NOT in `referenced_ids`.
+
+    This is the safe way to reclaim space: results (an `ExperimentReport`
+    /`AnalysisRun`) never need the raw dataset again once generated —
+    every fact they report was already computed and saved onto the
+    report itself (see chat_generator.py's SEGMENTATION section, added
+    for the same reason) — so a dataset only needs to stay around while
+    something still points at it: `experiments.dataset_id` (a
+    completed/in-progress experiment) or `experiment_definitions`'
+    `data_source.datasetId` (the currently-connected Data Source, needed
+    to re-run that definition). `referenced_ids` is expected to be the
+    union of both, computed by the caller — see
+    `routes_datasets.py`'s `/datasets/cleanup` route, which is the only
+    caller today. Returns the ids actually deleted.
+    """
+    session_factory = _get_session_factory()
+    with session_factory() as session:
+        all_ids = set(session.execute(select(DatasetModel.dataset_id)).scalars().all())
+        to_delete = all_ids - referenced_ids
+        for did in to_delete:
+            row = session.get(DatasetModel, did)
+            if row is not None:
+                session.delete(row)
+        session.commit()
+    return sorted(to_delete)

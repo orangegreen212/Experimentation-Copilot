@@ -19,7 +19,9 @@ from pathlib import Path
 import pandas as pd
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
-from app.core.dataset_store import store_dataset
+from app.core.dataset_store import delete_unused_datasets, store_dataset
+from app.core.experiment_definition_store import get_experiment_definition_store
+from app.core.experiment_store import get_experiment_store
 from app.core.rate_limit import rate_limit
 from app.schemas.dataset import ClassifyDatasetResponse
 from app.stats.dataset_classifier import DatasetClassificationError, classify_dataset
@@ -206,3 +208,35 @@ def classify_dataset_route(
         dataset_id=dataset_id,
         file_name=file_name,
     )
+
+
+@router.post("/cleanup")
+def cleanup_unused_datasets() -> dict:
+    """Delete every stored dataset no longer referenced by anything.
+
+    Safe by construction, never touches results: an `ExperimentReport`
+    (and everything chat can answer about it, including segmentation —
+    see chat_generator.py) is fully self-contained once generated, so
+    this only ever removes RAW dataset rows, and only the ones nothing
+    currently points at — every `experiments.dataset_id` (past and
+    in-progress analyses) and every `experiment_definitions`
+    `data_source.datasetId` (the dataset a definition would re-run
+    against) is kept. A dataset connected to a definition's Data Source,
+    or referenced by any saved experiment, is never deleted by this —
+    only genuinely orphaned rows (superseded re-selections, old
+    reclassifies, abandoned uploads) are.
+
+    Call this manually for now (e.g. a button in Settings, or a cron
+    hitting this endpoint) — nothing calls it automatically yet, since
+    "referenced" is a snapshot at call time and doing this automatically
+    right after every analysis would delete a dataset a definition is
+    still configured to re-run against.
+    """
+    referenced_ids = {row.dataset_id for row in get_experiment_store().list()}
+    referenced_ids |= {
+        d.data_source.dataset_id
+        for d in get_experiment_definition_store().list()
+        if d.data_source is not None and d.data_source.dataset_id
+    }
+    deleted = delete_unused_datasets(referenced_ids=referenced_ids)
+    return {"deleted_count": len(deleted), "deleted_ids": deleted}
