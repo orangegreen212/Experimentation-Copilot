@@ -226,8 +226,14 @@ export function ExperimentVariantsForm({ definition, onSaved }: ExperimentVarian
                   value={v.name}
                   onChange={(e) => updateVariant(index, { name: e.target.value })}
                   placeholder={v.isControl ? 'Control' : 'e.g. Treatment A'}
-                  className="mt-1 h-8 border-border text-sm placeholder:text-muted-foreground"
+                  className={cn(
+                    'mt-1 h-8 text-sm placeholder:text-muted-foreground',
+                    !v.name.trim() ? 'border-destructive focus-visible:ring-destructive' : 'border-border'
+                  )}
                 />
+                {!v.name.trim() && (
+                  <p className="mt-1 text-[11px] text-destructive">Name is required.</p>
+                )}
               </div>
               <div>
                 <Label className="text-xs font-medium text-muted-foreground">Allocation %</Label>
@@ -273,6 +279,17 @@ export function ExperimentVariantsForm({ definition, onSaved }: ExperimentVarian
             {controlCount !== 1 && (
               <span className="text-destructive">
                 — exactly one variant must be marked Control (currently {controlCount})
+              </span>
+            )}
+            {hasEmptyName && (
+              <span className="text-destructive">
+                — every variant needs a name
+                {(() => {
+                  const missing = variants
+                    .map((v, i) => (!v.name.trim() ? (v.isControl ? 'Control' : `#${i + 1}`) : null))
+                    .filter(Boolean);
+                  return missing.length ? ` (missing: ${missing.join(', ')})` : '';
+                })()}
               </span>
             )}
           </div>
