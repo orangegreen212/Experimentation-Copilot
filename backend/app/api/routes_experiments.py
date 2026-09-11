@@ -26,8 +26,16 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
+from pydantic import Field
 
-from app.core.dataset_store import dataset_exists, dataset_request_scope
+from app.core.dataset_store import (
+    dataset_exists,
+    dataset_request_scope,
+    mark_dataset_in_use,
+    mark_dataset_no_longer_in_use,
+)
+from app.core.execution_dedup import make_key, run_deduplicated
+from app.core.concurrency_limit import TooManyConcurrentAnalysesError, limit_concurrent_analyses
 from app.graph.chat_generator import (
     DEFAULT_MAX_HISTORY_MESSAGES,
     build_chat_message,
@@ -56,7 +64,25 @@ log = get_node_logger("API")
 
 class AnalyzeExperimentRequest(CamelModel):
     dataset_id: str
-    prompt: str
+    # RELIABILITY FIX (audit finding — "very large context" /
+    # "request payload size" risk): this field previously had NO
+    # length limit at all and is embedded verbatim, unsanitized and
+    # untruncated, into the LLM report prompt on every analyze call
+    # (see report_generator.py's LLMReportGenerator.generate ->
+    # `f'The user asked: "{facts.user_prompt}"...'`) — and the
+    # frontend's own textarea (components/workspace-view.tsx) has no
+    # maxLength either. A caller (not necessarily through the normal
+    # UI — this is a public POST endpoint) could submit an
+    # arbitrarily large string here, which would either bloat the
+    # request/LLM payload and cost for no benefit, or exceed a small
+    # free-tier model's context window and force every analyze call
+    # onto the (still-correct, but strictly worse) template fallback
+    # path. 4000 chars is generous for a real analyst question (the
+    # existing conceptual-question/no-KB-match branches quote this
+    # verbatim in an error message, so it also needs to stay
+    # display-reasonable) while making a runaway payload a clean 422
+    # instead of a wasted LLM round trip.
+    prompt: str = Field(max_length=4000)
     settings: AnalysisSettings
     # Display name for History (e.g. the uploaded/demo file name from
     # /datasets/classify's response). Falls back to dataset_id if the
@@ -276,6 +302,77 @@ async def _execute_analysis(
     )
 
 
+def _analysis_dedup_key(request: "AnalyzeExperimentRequest", *, definition_id: str | None) -> str:
+    """
+    Key for `core/execution_dedup.py` — see that module's docstring
+    for why this exists. Includes every field that determines the
+    pipeline's output (so two genuinely different requests never
+    collide) and `definition_id` (so a definition-linked run is never
+    merged with a coincidentally-identical ad-hoc one, or with a run
+    of a different definition — each must persist its own
+    `ExperimentRecord` regardless of input equality).
+    """
+    return make_key(
+        dataset_id=request.dataset_id,
+        assignment_dataset_id=request.assignment_dataset_id,
+        prompt=request.prompt,
+        settings=request.settings.model_dump(by_alias=True),
+        hypothesis=request.hypothesis.model_dump(by_alias=True) if request.hypothesis else None,
+        definition_id=definition_id,
+    )
+
+
+async def _execute_analysis_deduplicated(
+    request: "AnalyzeExperimentRequest",
+    run_context: RunContext,
+    *,
+    definition_id: str | None = None,
+) -> tuple[bool, AnalyzeExperimentResponse]:
+    """
+    Thin wrapper around `_execute_analysis` that suppresses duplicate
+    concurrent executions of the exact same request (see
+    `core/execution_dedup.py`). Every entry point that can trigger the
+    pipeline — `/analyze`, `/analyze/stream`, and
+    `routes_experiment_definitions.analyze_experiment_definition` —
+    goes through this instead of calling `_execute_analysis` directly,
+    so none of the three can accidentally bypass the dedup guard.
+
+    Returns `(is_leader, response)`. A caller that is NOT the leader
+    (`is_leader=False`) still gets the correct `response` — the
+    leader's — but did not itself run the pipeline or write a second
+    `ExperimentStore` row; only `analyze_experiment_stream` currently
+    uses `is_leader` (to tell the user their click joined an
+    already-running analysis instead of silently pretending to run a
+    second one with no progress events).
+    """
+    key = _analysis_dedup_key(request, definition_id=definition_id)
+
+    async def _run_within_concurrency_limit():
+        # Only the LEADER's closure is ever actually invoked (see
+        # run_deduplicated), so a follower joining an in-flight
+        # identical request never consumes a concurrency slot of its
+        # own — it's the same execution, not a second one.
+        #
+        # CLEANUP-RACE FIX: mark both dataset ids in use for the ENTIRE
+        # duration of this call — starting before `_execute_analysis`
+        # even checks `dataset_exists` — so the background cleanup
+        # sweep (core/dataset_cleanup_scheduler.py) can never delete a
+        # dataset out from under a request that has already started
+        # using it. See `core/dataset_store.py`'s
+        # `mark_dataset_in_use` docstring for the exact race this
+        # closes.
+        mark_dataset_in_use(request.dataset_id)
+        mark_dataset_in_use(request.assignment_dataset_id)
+        try:
+            async with limit_concurrent_analyses():
+                return await _execute_analysis(request, run_context, definition_id=definition_id)
+        finally:
+            mark_dataset_no_longer_in_use(request.dataset_id)
+            mark_dataset_no_longer_in_use(request.assignment_dataset_id)
+
+    return await run_deduplicated(key, _run_within_concurrency_limit)
+
+
 @router.post(
     "/analyze",
     response_model=AnalyzeExperimentResponse,
@@ -289,9 +386,24 @@ async def analyze_experiment(request: AnalyzeExperimentRequest) -> AnalyzeExperi
     instrumentation was added — `stage_timings` is a purely additive
     field (Part 1). Nothing streams here; see
     `analyze_experiment_stream` for that.
+
+    If an identical request (same dataset(s), prompt, settings, and
+    hypothesis) is already running when this one arrives, this call
+    does not start a second pipeline execution — it waits for and
+    returns the in-flight run's result. See
+    `core/execution_dedup.py`.
+
+    Raises 503 (not a hang, not a 500) if
+    `AppSettings.max_concurrent_analyses` DIFFERENT analyses are
+    already running on this instance — see
+    `core/concurrency_limit.py`.
     """
     run_context = RunContext(run_id=str(uuid.uuid4()))
-    return await _execute_analysis(request, run_context)
+    try:
+        _is_leader, response = await _execute_analysis_deduplicated(request, run_context)
+    except TooManyConcurrentAnalysesError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return response
 
 
 @router.post(
@@ -328,6 +440,18 @@ async def analyze_experiment_stream(request: AnalyzeExperimentRequest) -> Stream
     back to this coroutine's `asyncio.Queue` via
     `loop.call_soon_threadsafe` (an `asyncio.Queue` is not safe to
     write to directly from another thread).
+
+    DUPLICATE EXECUTION: if an identical analysis (same dataset(s),
+    prompt, settings, hypothesis) is already running — e.g. the user
+    refreshed the page mid-analysis and clicked Analyze again, while
+    the first run is still finishing server-side (see the client-
+    disconnect note above: that run is deliberately not cancelled) —
+    this request does NOT start a second pipeline execution. It joins
+    the in-flight one via `core/execution_dedup.py` and receives a
+    `duplicate_of_running_analysis` event immediately (since it won't
+    see that run's earlier stage_started/stage_completed events, which
+    already happened), then the same `result`/`pipeline_completed`
+    events every other caller for that run receives.
     """
     loop = asyncio.get_event_loop()
     event_queue: "asyncio.Queue[dict]" = asyncio.Queue()
@@ -340,7 +464,18 @@ async def analyze_experiment_stream(request: AnalyzeExperimentRequest) -> Stream
 
     async def run_and_finish() -> None:
         try:
-            response = await _execute_analysis(request, run_context)
+            is_leader, response = await _execute_analysis_deduplicated(request, run_context)
+            if not is_leader:
+                await event_queue.put(
+                    {
+                        "type": "duplicate_of_running_analysis",
+                        "stage": "pipeline",
+                        "message": (
+                            "An identical analysis was already running — reusing its result "
+                            "instead of running a second one."
+                        ),
+                    }
+                )
         except HTTPException as exc:
             # Only emit a generic "pipeline"-level error if no node
             # already reported this failure at the stage level (see
@@ -356,6 +491,13 @@ async def analyze_experiment_stream(request: AnalyzeExperimentRequest) -> Stream
             # error event sent.
             if not run_context.error_emitted:
                 await event_queue.put({"type": "error", "stage": "pipeline", "message": str(exc.detail)})
+        except TooManyConcurrentAnalysesError as exc:
+            # Expected load-shedding, not a bug — deliberately not
+            # routed through log.exception (unlike the generic
+            # `except Exception` below) so this doesn't read as an
+            # unexpected server error in logs/alerting.
+            if not run_context.error_emitted:
+                await event_queue.put({"type": "error", "stage": "pipeline", "message": str(exc)})
         except Exception as exc:  # pragma: no cover - defensive: never leave the client hanging
             log.exception("[API] streaming analyze failed")
             if not run_context.error_emitted:

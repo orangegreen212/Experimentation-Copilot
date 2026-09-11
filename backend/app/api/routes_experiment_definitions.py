@@ -33,8 +33,9 @@ from fastapi import APIRouter, HTTPException
 from app.api.routes_experiments import (
     AnalyzeExperimentRequest,
     AnalyzeExperimentResponse,
-    _execute_analysis,
+    _execute_analysis_deduplicated,
 )
+from app.core.concurrency_limit import TooManyConcurrentAnalysesError
 from app.core.experiment_definition_store import (
     ExperimentDefinitionStore,
     get_experiment_definition_store,
@@ -191,7 +192,13 @@ async def analyze_experiment_definition(
         hypothesis=primary_hypothesis,
     )
     run_context = RunContext(run_id=str(uuid.uuid4()))
-    return await _execute_analysis(analyze_request, run_context, definition_id=definition_id)
+    try:
+        _is_leader, response = await _execute_analysis_deduplicated(
+            analyze_request, run_context, definition_id=definition_id
+        )
+    except TooManyConcurrentAnalysesError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return response
 
 
 @router.get("/{definition_id}/runs", response_model=list[ExperimentSummary])

@@ -75,6 +75,7 @@ import base64
 import gzip
 import hashlib
 import json
+import threading
 import time
 import uuid
 from contextlib import contextmanager
@@ -337,6 +338,68 @@ _dataset_cache: ContextVar[dict[str, pd.DataFrame] | None] = ContextVar(
 )
 
 
+# CLEANUP-RACE FIX: `delete_unused_datasets` (below) treats a dataset
+# as safe to delete once no `experiments`/`experiment_definitions` row
+# references it — but a reference is only ever written at the very
+# END of a successful analyze call (ExperimentStore.create()). Between
+# an analyze request STARTING (its first get_dataset() call) and that
+# eventual persist, the dataset is, by that definition, still
+# "unreferenced" — so a dataset that is old enough to be sweep-eligible
+# (see AppSettings.dataset_retention_hours) but has never been used
+# before could theoretically be deleted by a concurrent sweep in the
+# narrow window between a request starting and it finishing, causing
+# that FIRST use to fail with a 404 it can't recover from (the row is
+# gone). This plain in-memory refcount closes that window: every
+# analyze call registers the dataset_id(s) it's using for its entire
+# duration (see `_execute_analysis` in routes_experiments.py), and
+# `dataset_cleanup_scheduler._referenced_dataset_ids()` treats
+# anything in here as referenced too, regardless of what's in the DB.
+#
+# `threading.Lock`, not `asyncio.Lock`, because both sides that touch
+# this run on plain OS threads via `asyncio.to_thread` (the analyze
+# pipeline and the cleanup sweep), not necessarily the event loop
+# thread — an asyncio.Lock is only safe to await from within the loop
+# that created it. Same process-local scope/caveat as
+# core/execution_dedup.py and core/rate_limit.py: this does not
+# coordinate across multiple workers/instances, which is fine because
+# the sweep itself is likewise process-local (see
+# dataset_cleanup_scheduler.py's module docstring).
+_in_flight_lock = threading.Lock()
+_in_flight_dataset_refcounts: dict[str, int] = {}
+
+
+def mark_dataset_in_use(dataset_id: str | None) -> None:
+    """Registers one active use of `dataset_id` (a no-op for None —
+    callers pass `assignment_dataset_id`, which is often absent,
+    directly). Must be paired with exactly one
+    `mark_dataset_no_longer_in_use` call, in a `finally`, regardless of
+    success or failure — see `_execute_analysis`'s usage."""
+    if not dataset_id:
+        return
+    with _in_flight_lock:
+        _in_flight_dataset_refcounts[dataset_id] = _in_flight_dataset_refcounts.get(dataset_id, 0) + 1
+
+
+def mark_dataset_no_longer_in_use(dataset_id: str | None) -> None:
+    if not dataset_id:
+        return
+    with _in_flight_lock:
+        remaining = _in_flight_dataset_refcounts.get(dataset_id, 0) - 1
+        if remaining <= 0:
+            _in_flight_dataset_refcounts.pop(dataset_id, None)
+        else:
+            _in_flight_dataset_refcounts[dataset_id] = remaining
+
+
+def in_flight_dataset_ids() -> set[str]:
+    """Snapshot of every dataset_id currently registered as in use by
+    at least one in-progress analyze call in this process — see
+    dataset_cleanup_scheduler.py's `_referenced_dataset_ids()`, the
+    only caller."""
+    with _in_flight_lock:
+        return set(_in_flight_dataset_refcounts.keys())
+
+
 @contextmanager
 def dataset_request_scope() -> Iterator[None]:
     """
@@ -558,7 +621,9 @@ def delete_dataset(dataset_id: str) -> bool:
     return True
 
 
-def delete_unused_datasets(*, referenced_ids: set[str]) -> list[str]:
+def delete_unused_datasets(
+    *, referenced_ids: set[str], older_than: datetime | None = None
+) -> list[str]:
     """Delete every stored dataset whose id is NOT in `referenced_ids`.
 
     This is the safe way to reclaim space: results (an `ExperimentReport`
@@ -570,14 +635,31 @@ def delete_unused_datasets(*, referenced_ids: set[str]) -> list[str]:
     completed/in-progress experiment) or `experiment_definitions`'
     `data_source.datasetId` (the currently-connected Data Source, needed
     to re-run that definition). `referenced_ids` is expected to be the
-    union of both, computed by the caller — see
-    `routes_datasets.py`'s `/datasets/cleanup` route, which is the only
-    caller today. Returns the ids actually deleted.
+    union of both, computed by the caller.
+
+    `older_than`, if given, additionally restricts deletion to rows
+    created before that timestamp — used by the periodic background
+    sweep in `main.py` (see its docstring) so an upload/reclassify that
+    hasn't been linked to an experiment or definition YET (e.g. the
+    analyze request for it is still in flight, or the user simply
+    hasn't clicked Analyze yet) is never deleted out from under an
+    in-progress session; only genuinely abandoned rows old enough that
+    no legitimate in-progress flow could still need them are swept.
+    Omitted (the default, `None`) reproduces the exact prior
+    behavior — every unreferenced row, regardless of age — which is
+    what the manual `/datasets/cleanup` route intentionally still
+    does, since a human explicitly asking for cleanup already knows
+    what they're doing.
+
+    Returns the ids actually deleted.
     """
     session_factory = _get_session_factory()
     with session_factory() as session:
-        all_ids = set(session.execute(select(DatasetModel.dataset_id)).scalars().all())
-        to_delete = all_ids - referenced_ids
+        stmt = select(DatasetModel.dataset_id)
+        if older_than is not None:
+            stmt = stmt.where(DatasetModel.created_at < older_than)
+        candidate_ids = set(session.execute(stmt).scalars().all())
+        to_delete = candidate_ids - referenced_ids
         for did in to_delete:
             row = session.get(DatasetModel, did)
             if row is not None:

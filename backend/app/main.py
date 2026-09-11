@@ -1,8 +1,11 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import app_settings
 from sqlalchemy import create_engine, text
 from app.core.tracing import configure_tracing
+from app.core.dataset_cleanup_scheduler import start_background_cleanup, stop_background_cleanup
 
 # Must run before any LangGraph graph is invoked (compiling the graph
 # doesn't need it, but the first request does) — env vars set here are
@@ -15,10 +18,32 @@ from app.api.routes_experiment_definitions import router as experiment_definitio
 from app.api.routes_planning import router as planning_router
 from app.api.routes_system import router as system_router
 
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # See core/dataset_cleanup_scheduler.py's module docstring for
+    # exactly what this does and does not guarantee — in short: safe
+    # and effective on this project's actual Render single-worker
+    # deployment, a no-op-but-harmless redundancy under multiple
+    # workers, and NOT something to depend on if this app is deployed
+    # on Vercel serverless (api/index.py) instead — use an external
+    # cron hitting POST /datasets/cleanup there.
+    start_background_cleanup()
+    try:
+        yield
+    finally:
+        # Cancel and await the sweep task before the process exits so
+        # a mid-sweep DB call is never abandoned half-finished, and so
+        # tests that construct this app repeatedly never accumulate
+        # more than one live scheduler task.
+        await stop_background_cleanup()
+
+
 app = FastAPI(
     title="Experiment Review Copilot API",
     description="AI Decision Support System for Product Experimentation",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 # Next.js dev server default port; tighten this list for production.

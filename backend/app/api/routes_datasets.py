@@ -19,12 +19,16 @@ from pathlib import Path
 import pandas as pd
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
-from app.core.dataset_store import delete_unused_datasets, store_dataset
+from app.core.dataset_store import delete_unused_datasets, get_dataset, store_dataset
 from app.core.experiment_definition_store import get_experiment_definition_store
 from app.core.experiment_store import get_experiment_store
 from app.core.rate_limit import rate_limit
 from app.schemas.dataset import ClassifyDatasetResponse
-from app.stats.dataset_classifier import DatasetClassificationError, classify_dataset
+from app.stats.dataset_classifier import (
+    DatasetClassificationError,
+    classify_dataset,
+    enrich_with_assignment,
+)
 
 logger = logging.getLogger("api.datasets")
 router = APIRouter(prefix="/datasets", tags=["datasets"])
@@ -109,14 +113,57 @@ def classify_dataset_route(
     use_demo: bool = Form(default=False),
     simulate_low_quality: bool = Form(default=False),
     dataset_key: str | None = Form(default=None),
+    # REFRESH mode (Classifier Banner recompute) — see
+    # lib/api.ts's refreshClassification(). Re-runs classification
+    # against an ALREADY-STORED dataset (no file re-upload, no new
+    # `datasets` row) — used when the analyst attaches or removes a
+    # separate assignment file and the banner needs to reflect the
+    # merged frame's columns before /experiments/analyze is ever
+    # called. `dataset_id` is required to enter this mode;
+    # `assignment_dataset_id` and `file_name` are optional. BUG FIX:
+    # these three fields previously had no corresponding parameters
+    # here at all — FastAPI silently ignored them as unrecognized form
+    # fields, `dataset_id` was never truthy in any branch below, and
+    # every refreshClassification() call fell through to the final
+    # `else` and 400'd. The Classifier Banner never actually
+    # recomputed after attaching/removing an assignment file; see
+    # tests/api/test_datasets_api.py::test_refresh_classification_*.
+    dataset_id: str | None = Form(default=None),
+    assignment_dataset_id: str | None = Form(default=None),
+    file_name: str | None = Form(default=None),
 ) -> ClassifyDatasetResponse:
     """
-    Classify an uploaded CSV or load one of the two demo datasets.
+    Classify an uploaded CSV, load one of the two demo datasets, or
+    (REFRESH mode) recompute classification for an already-stored
+    dataset — see the `dataset_id` parameter's docstring above.
 
-    Exactly one of `file` or `use_demo=True` is expected to be set by
-    the frontend at a time (mirrors the mutually exclusive UI actions
-    "Upload CSV" vs "Load Demo A/B Dataset").
+    Exactly one of `file`, `use_demo=True`, `dataset_key`, or
+    `dataset_id` is expected to be set by the frontend at a time.
     """
+    if dataset_id and file is None and not use_demo and not dataset_key:
+        # REFRESH mode — no new row, no re-upload. `enrich_with_assignment`
+        # here is intentionally the SAME merge classifier_node.py performs
+        # for a real /experiments/analyze call, so the banner shown before
+        # analyzing matches what analyze will actually resolve — but,
+        # unlike classifier_node, the merged frame is NOT persisted via
+        # store_dataset(): this is a read-only preview, and analyze always
+        # redoes (and persists) its own merge independently, so persisting
+        # one here too would only create an extra, immediately-orphaned
+        # `datasets` row per banner recompute.
+        df = get_dataset(dataset_id)
+        if assignment_dataset_id:
+            assignment_df = get_dataset(assignment_dataset_id)
+            df = enrich_with_assignment(df, assignment_df)
+        try:
+            dataset_info = classify_dataset(df)
+        except DatasetClassificationError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        return ClassifyDatasetResponse(
+            dataset=dataset_info,
+            dataset_id=dataset_id,
+            file_name=file_name or dataset_id,
+        )
+
     if file is not None:
         raw_bytes = _read_upload_with_limit(file, _MAX_UPLOAD_BYTES)
         file_name = file.filename or "uploaded.csv"

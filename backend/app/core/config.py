@@ -97,8 +97,6 @@ class AppSettings(BaseSettings):
     llm_request_timeout_seconds: float = 30.0
     llm_max_tokens: int = 4096
 
-    llm_request_timeout_seconds: float = 30.0
-
     # Curated as of 2026-08-29. Paid models come FIRST on purpose: the
     # free-tier OpenRouter models are rate-limited/queued and sometimes
     # simply don't respond, so both the backend default (llm_model,
@@ -154,16 +152,6 @@ class AppSettings(BaseSettings):
     # "llm" is Stage 8 — same one-line-swap pattern as report_backend.
     planner_backend: str = "keyword"
 
-    # LangSmith tracing (Stage 8.1 — observability only, never
-    # business logic). Tracing is opt-in and fails safe: see
-    # core/tracing.py's configure_tracing() — if no API key is
-    # present, tracing is forced off regardless of what
-    # LANGCHAIN_TRACING_V2 says, so the app always runs without a
-    # LangSmith account.
-    langsmith_api_key: str = ""
-    langchain_project: str = "experiment-review-copilot"
-    langchain_tracing_v2: bool = False
-
     # Persistence (Experiment History). SQLAlchemy connection string
     # for the ExperimentStore (see core/experiment_store.py).
     #
@@ -179,6 +167,49 @@ class AppSettings(BaseSettings):
     # "production" and DATABASE_URL still points at sqlite — see that
     # function's docstring.
     database_url: str = "sqlite:///./data/experiments.db"
+
+    # Background orphaned-dataset sweep (see main.py's startup hook and
+    # core/dataset_store.delete_unused_datasets' `older_than` param).
+    # identical re-uploads by content hash, and `/datasets/cleanup`
+    # already existed to delete unreferenced rows — but nothing called
+    # it automatically, so every upload/reclassify that never went on
+    # to a saved experiment or a definition's Data Source (an abandoned
+    # upload, a superseded re-selection, a dataset previewed but never
+    # analyzed) stayed in the `datasets` table forever. This runs the
+    # exact same "unreferenced" check periodically and automatically,
+    # restricted to rows older than `dataset_retention_hours` so a
+    # dataset mid-upload or awaiting its analyze call is never at risk —
+    # no legitimate flow between an upload and either an analyze call or
+    # a definition being saved takes anywhere close to that long.
+    # Background orphaned-dataset sweep (see main.py's startup hook and
+    # core/dataset_store.delete_unused_datasets' `older_than` param).
+    # Storage-growth audit finding: `store_dataset()` already dedupes
+    # identical re-uploads by content hash, and `/datasets/cleanup`
+    # already existed to delete unreferenced rows — but nothing called
+    # it automatically, so every upload/reclassify that never went on
+    # to a saved experiment or a definition's Data Source (an abandoned
+    # upload, a superseded re-selection, a dataset previewed but never
+    # analyzed) stayed in the `datasets` table forever. This runs the
+    # exact same "unreferenced" check periodically and automatically,
+    # restricted to rows older than `dataset_retention_hours` so a
+    # dataset mid-upload or awaiting its analyze call is never at risk —
+    # no legitimate flow between an upload and either an analyze call or
+    # a definition being saved takes anywhere close to that long.
+    enable_background_dataset_cleanup: bool = True
+    dataset_retention_hours: float = 24.0
+    dataset_cleanup_interval_seconds: float = 3600.0
+
+    # Concurrency-audit finding: nothing previously bounded how many
+    # FULL LangGraph pipeline executions (`asyncio.to_thread(...)` in
+    # routes_experiments.py — real, CPU-bound pandas/statsmodels work,
+    # plus a synchronous outbound LLM call) could run at the same time
+    # in this one process. Render's free tier is a small/shared-CPU
+    # instance; a handful of concurrent /analyze requests (5 users, or
+    # one user's browser retry landing alongside a fresh click) would
+    # previously all be handed their own worker thread with no ceiling
+    # — degrading latency for everyone rather than failing fast for
+    # the excess requests. See core/concurrency_limit.py.
+    max_concurrent_analyses: int = 4
 
 
 stats_thresholds = StatsThresholds()

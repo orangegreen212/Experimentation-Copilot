@@ -20,6 +20,8 @@ mock with an LLM call templated over the same grounding data.
 
 from enum import Enum
 
+from pydantic import Field
+
 from app.schemas.base import CamelModel
 
 
@@ -36,7 +38,17 @@ class ChatMessage(CamelModel):
 
 class FollowUpChatRequest(CamelModel):
     experiment_id: str
-    message: str
+    # RELIABILITY FIX (same audit finding/fix as
+    # AnalyzeExperimentRequest.prompt in routes_experiments.py): this
+    # is embedded verbatim into the LLM conversation on every chat
+    # call (`conversation.append({"role": "user", "content":
+    # message})` in graph/chat_generator.py's `_build_chat_conversation`)
+    # and previously had no length limit. `history` is NOT a
+    # client-supplied risk here — it's read server-side from
+    # ExperimentStore and already trimmed to
+    # DEFAULT_MAX_HISTORY_MESSAGES (routes_experiments.py) — so
+    # `message` was the one unbounded input on this path.
+    message: str = Field(max_length=4000)
     # Optional per-request LLM override — see AnalysisSettings.model
     # (schemas/settings.py) and app.llm.client.resolve_model() for how
     # this is validated against the curated free-model allowlist.
