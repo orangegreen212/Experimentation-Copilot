@@ -27,7 +27,7 @@ from app.schemas.base import CamelModel
 class AnalysisSettings(CamelModel):
     cuped: bool = False
     bootstrap: bool = False
-    model: str = "claude-sonnet"
+    model: str = "nvidia/nemotron-3-ultra-550b-a55b:free"
     cost_usd: float = 0.0
 
     # Confidence level / statistical power — user-facing overrides of
