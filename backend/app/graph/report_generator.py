@@ -213,6 +213,15 @@ def _display_number(value: str) -> float | None:
     return float(match.group()) if match else None
 
 
+def _metric_names_match(a: str, b: str) -> bool:
+    """
+    Case/whitespace-insensitive equality for comparing a hypothesis's
+    or a settings override's metric name against a StatResult.metric
+    label. Never fuzzy beyond that — no substring or token matching.
+    """
+    return a.strip().casefold() == b.strip().casefold()
+
+
 def _practical_significance_threshold(
     facts: ReportFacts, stat: StatResult
 ) -> tuple[float, str, str] | None:
@@ -249,7 +258,7 @@ def _practical_significance_threshold(
     if (
         hypothesis is not None
         and hypothesis.expected_effect_relative is not None
-        and hypothesis.primary_metric == stat.metric
+        and _metric_names_match(hypothesis.primary_metric, stat.metric)
     ):
         threshold = abs(hypothesis.expected_effect_relative) * 100
         note = (
