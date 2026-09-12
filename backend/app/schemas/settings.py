@@ -27,8 +27,22 @@ from app.schemas.base import CamelModel
 class AnalysisSettings(CamelModel):
     cuped: bool = False
     bootstrap: bool = False
-    model: str = "nvidia/nemotron-3-ultra-550b-a55b:free"
+    model: str = "claude-sonnet"
     cost_usd: float = 0.0
+
+    # Explicit, structured primary-metric override — e.g. sourced from
+    # ExperimentDefinition.metrics' PRIMARY-role entry (see
+    # routes_experiment_definitions.py's analyze_experiment_definition,
+    # which populates this from the definition's configured metrics
+    # before calling into the shared analysis pipeline). Takes priority
+    # over free-text matching against `prompt` in
+    # dataset_classifier._select_metric_column — a metric the analyst
+    # explicitly configured on the definition must never be silently
+    # re-discovered/overridden by prompt-text substring matching or the
+    # deterministic outcome-column priority fallback. None preserves
+    # every existing caller's behavior exactly (falls back to prompt
+    # matching, then the priority list, as before this field existed).
+    requested_primary_metric: str | None = None
 
     # Confidence level / statistical power — user-facing overrides of
     # `StatsThresholds.significance_alpha` / `.target_power`
