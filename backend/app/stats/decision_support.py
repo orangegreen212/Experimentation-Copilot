@@ -79,11 +79,14 @@ _VERDICT_INTERPRETATION: dict[HypothesisVerdict, str] = {
 
 
 def _find_matching_stat_result(metric: str, stat_results: list[StatResult]) -> StatResult | None:
-    """Same exact-match rule as `hypothesis_evaluator._find_matching_stat_result` — never fuzzy."""
+    """Same case/whitespace-insensitive matching rule as
+    `hypothesis_evaluator._find_matching_stat_result` — still never
+    fuzzy beyond that (no substring/token matching)."""
+    normalized_target = metric.strip().casefold()
     for result in stat_results:
         if result.is_omnibus:
             continue
-        if result.metric == metric:
+        if result.metric.strip().casefold() == normalized_target:
             return result
     return None
 
