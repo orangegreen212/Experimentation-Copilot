@@ -49,6 +49,7 @@ from app.schemas.experiment_definition import (
     ExperimentDefinitionSummary,
     ExperimentDefinitionUpdateRequest,
     HypothesisRole,
+    MetricRole,
 )
 from app.schemas.experiment_history import ExperimentSummary
 from app.schemas.settings import AnalysisSettings
@@ -184,11 +185,39 @@ async def analyze_experiment_definition(
         None,
     )
 
+    # Phase 8 fix — the Metrics section on ExperimentDefinition
+    # (Primary/Secondary/Guardrail) was being collected and validated
+    # but never actually threaded into the analysis engine: the engine
+    # would independently re-discover a primary metric via prompt-text
+    # matching / the deterministic outcome-column priority (see
+    # dataset_classifier._select_metric_column), and guardrails were
+    # never requested at all (guardrail_node.py only ever sees
+    # `settings.guardrail_metrics`, which nothing populated for a
+    # definition-driven run). Both are now sourced from the
+    # definition's own configured metrics, taking priority over
+    # rediscovery — an explicitly configured metric must never be
+    # silently re-picked by the dataset classifier. Per-request
+    # `settings` values (if the caller already set them) are preserved
+    # rather than overwritten, so an explicit request.settings override
+    # still wins.
+    settings = request.settings.model_copy(deep=True)
+    if not settings.requested_primary_metric:
+        configured_primary = next(
+            (m.name for m in definition.metrics if m.role == MetricRole.PRIMARY),
+            None,
+        )
+        if configured_primary:
+            settings.requested_primary_metric = configured_primary
+    if not settings.guardrail_metrics:
+        configured_guardrails = [m.name for m in definition.metrics if m.role == MetricRole.GUARDRAIL]
+        if configured_guardrails:
+            settings.guardrail_metrics = configured_guardrails
+
     analyze_request = AnalyzeExperimentRequest(
         dataset_id=definition.data_source.dataset_id,
         dataset_name=definition.data_source.dataset_name or definition.name,
         prompt=_prompt_from_definition(definition, request.prompt),
-        settings=request.settings,
+        settings=settings,
         hypothesis=primary_hypothesis,
     )
     run_context = RunContext(run_id=str(uuid.uuid4()))
