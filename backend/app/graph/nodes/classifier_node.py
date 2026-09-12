@@ -30,12 +30,18 @@ log = get_node_logger("Classifier")
 def classifier_node(state: GraphState) -> GraphState:
     df = get_dataset(state["dataset_id"])
 
-    # The user's own request text is matched against column names/labels
-    # deterministically inside classify_dataset (see
-    # dataset_classifier._select_metric_column) — this is plain string
-    # matching, not an LLM call, so metric selection stays a classifier
-    # fact rather than an LLM interpretation.
-    preferred_metric = state.get("user_prompt")
+    # `preferred_metric` precedence: an EXPLICIT, structured override
+    # (Settings.requestedPrimaryMetric — e.g. the PRIMARY-role metric
+    # configured on an ExperimentDefinition, see
+    # routes_experiment_definitions.py) always wins over free-text
+    # matching against the prompt. A metric the analyst explicitly
+    # configured must never be silently re-discovered by substring
+    # matching or the deterministic outcome-column priority fallback —
+    # only fall back to prompt-text matching when no explicit override
+    # was supplied, exactly as before this field existed.
+    settings = state.get("settings")
+    explicit_metric = getattr(settings, "requested_primary_metric", None) if settings else None
+    preferred_metric = explicit_metric or state.get("user_prompt")
 
     # Optional separate experiment-assignment dataset (user_id | variant),
     # uploaded through the SAME /datasets/classify mechanism as the
