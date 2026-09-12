@@ -69,10 +69,11 @@ def _find_matching_stat_result(primary_metric: str, stat_results: list[StatResul
     always-present omnibus row before reaching the real pairwise
     result later in the list.
     """
+    normalized_target = primary_metric.strip().casefold()
     for result in stat_results:
         if result.is_omnibus:
             continue
-        if result.metric == primary_metric:
+        if result.metric.strip().casefold() == normalized_target:
             return result
     return None
 
